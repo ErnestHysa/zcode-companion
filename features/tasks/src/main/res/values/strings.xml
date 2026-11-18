@@ -255,7 +255,9 @@
     <string name="workspace_manager_up">Move up</string>
     <string name="workspace_manager_down">Move down</string>
     <!-- G42-P23 (vc52 Phase 12): the workflow management verbs (Delete / Rename / Move-to-project) -->
-    <string name="workflow_manage_a11y">Manage workflow</string>
+    <!-- N-BL-1 (pass-0 Phase 5): the per-row buttons carry NAME-BEARING descs (TalkBack on a multi-row hub). -->
+    <string name="workflow_run_a11y">Run workflow %1$s</string>
+    <string name="workflow_manage_a11y">Manage workflow %1$s</string>
     <string name="workflow_rename_action">Rename</string>
     <string name="workflow_move_action">Move to project…</string>
     <string name="workflow_delete_action">Delete</string>

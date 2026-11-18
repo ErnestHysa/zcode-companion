@@ -203,6 +203,8 @@
     <string name="workflow_scope_global">全局</string>
     <string name="workflow_run_action">运行</string>
     <string name="workflow_run_title">运行 %1$s</string>
+    <string name="workflow_run_a11y">运行工作流 %1$s</string>
+    <string name="workflow_manage_a11y">管理工作流 %1$s</string>
     <string name="workflow_target_task">在任务中运行</string>
     <string name="workflow_no_tasks">没有可运行的任务 — 请先创建一个</string>
     <string name="workflow_lastrun_never">从未运行</string>

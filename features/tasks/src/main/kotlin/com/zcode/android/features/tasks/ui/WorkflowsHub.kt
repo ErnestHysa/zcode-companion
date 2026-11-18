@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -292,17 +294,30 @@ private fun WorkflowRow(
                 modifier = Modifier.testTag("workflow_lastrun_${wf.name}"),
             )
         }
-        TextButton(onClick = onRun, modifier = Modifier.testTag("workflow_run_${wf.name}")) {
+        // N-BL-1 (pass-0 Phase 5): BOTH per-row buttons carry NAME-BEARING content
+        // descriptions — they were the a11y sweep's only subtree-unlabeled clickables
+        // (TalkBack silence), and a multi-row hub needs the per-row identity.
+        val runDesc = stringResource(R.string.workflow_run_a11y, wf.name)
+        TextButton(
+            onClick = onRun,
+            modifier = Modifier
+                .testTag("workflow_run_${wf.name}")
+                .semantics { contentDescription = runDesc },
+        ) {
             Text(stringResource(R.string.workflow_run_action))
         }
         // G42-P23: the management overflow (Delete / Rename / Move-to-project).
         var menuOpen by remember { mutableStateOf(false) }
+        val manageDesc = stringResource(R.string.workflow_manage_a11y, wf.name)
         androidx.compose.material3.IconButton(
             onClick = { menuOpen = true },
-            modifier = Modifier.testTag("workflow_manage_${wf.name}"),
+            modifier = Modifier
+                .testTag("workflow_manage_${wf.name}")
+                .semantics { contentDescription = manageDesc },
         ) {
             androidx.compose.material.icons.Icons.Filled.MoreVert.let {
-                androidx.compose.material3.Icon(imageVector = it, contentDescription = stringResource(R.string.workflow_manage_a11y))
+                // Decorative — the button's own desc (above) is the announced label.
+                androidx.compose.material3.Icon(imageVector = it, contentDescription = null)
             }
         }
         androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
