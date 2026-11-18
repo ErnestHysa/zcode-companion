@@ -1151,6 +1151,21 @@ class ConnectionHub(
                         log.warn("interaction.scope", "${it.javaClass.simpleName}: ${it.message?.take(80)}")
                     }
             },
+            // F-P3-C: the inbox ACK's resolution echo drops for an UNSUBSCRIBED
+            // conversation (`gateway.drop … no subscription record`) — the accepted
+            // ack's local resolve completes without it: the notification records for
+            // the answered interaction dismiss NOW, not at the next snapshot.
+            onResolvedLocally = { _, iid, status ->
+                val port = notificationRecords
+                if (port != null && status in setOf("accepted", "duplicate", "noop")) {
+                    val dismissals = com.zcode.android.domain.recovery.NotificationReconciler
+                        .dismissals(port.visible(), emptySet(), setOf(iid.raw))
+                    if (dismissals.isNotEmpty()) {
+                        port.dismiss(dismissals)
+                        log.info("interaction.resolvedLocally", "interaction=${iid.raw.take(24)} dismissed=${dismissals.size}")
+                    }
+                }
+            },
             log = log,
         )
         interactionCoordinator = created

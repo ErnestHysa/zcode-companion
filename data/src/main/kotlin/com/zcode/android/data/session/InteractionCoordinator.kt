@@ -57,6 +57,15 @@ class InteractionCoordinator(
      * session the Approvals screen never attached.
      */
     private val ensureScope: (suspend (workspacePath: String?, workspaceIdentity: String?) -> Unit)? = null,
+    /**
+     * F-P3-C (pass-0 Phase 2): fired the moment an accepted resolveInteraction
+     * ack resolves the record LOCALLY. When the answered conversation is
+     * UNSUBSCRIBED (the Approvals-inbox shape), the desktop's confirmation delta
+     * drops at the gateway (`no subscription record`) and nothing on the phone
+     * may keep waiting for it — the wiring dismisses the interaction's
+     * notification records so the local resolve is complete without the echo.
+     */
+    private val onResolvedLocally: (suspend (sessionId: String?, interactionId: InteractionId, ackStatus: String) -> Unit)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
 ) {
@@ -299,6 +308,8 @@ class InteractionCoordinator(
                 // RESOLVED-by-elsewhere before the late ack returns (§20.3 row 3).
                 resolveRecord(interactionId, resolvedBySelf = !machine.resolvedByElsewhere)
                 pendingCommands.remove(interactionId) // terminal: the entry's work is done
+                // F-P3-C: the local resolve is COMPLETE without the echo.
+                runCatching { onResolvedLocally?.invoke(request.sessionId, interactionId, ack.status) }
             } else if (machine.state in TERMINAL_MACHINE_STATES) {
                 pendingCommands.remove(interactionId)
             }
