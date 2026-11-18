@@ -24,6 +24,8 @@
     <string name="checkpoint_restore">Restore</string>
     <string name="checkpoint_restore_title">Restore this checkpoint?</string>
     <string name="checkpoint_restore_body">Restore the workspace to snapshot %1$s (from %2$s)? Files changed between the two are overwritten.</string>
+    <!-- N-CA-1 (pass-0 Phase 4): the confirm names the diff\'s files. -->
+    <string name="checkpoint_diff_files">Changed files: %1$s</string>
     <string name="checkpoint_conflict_title">Local changes conflict</string>
     <string name="checkpoint_conflict_body">%1$d file(s) were modified since the snapshot (%2$s…). Overwrite them?</string>
     <string name="checkpoint_force">Overwrite</string>

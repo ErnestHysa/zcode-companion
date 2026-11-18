@@ -85,7 +85,9 @@ class CheckpointsCardUiTest {
         rule.onNodeWithTag("checkpoint_restore_confirm").assertIsDisplayed()
         assertTrue("nothing fired before the confirm", calls.none { it.startsWith("restore") })
         rule.onNodeWithTag("checkpoint_restore_confirm").performClick(); rule.waitForIdle()
-        assertEquals(listOf("create", "create", "restore:ckpt-1:ckpt-2:force=false"), calls)
+        // N-CA-1 (Phase 4): the confirm now fetches the confirmed pair's diff BEFORE the
+        // restore — the diff wire rides every confirm open.
+        assertEquals(listOf("create", "create", "diff:ckpt-1:ckpt-2", "restore:ckpt-1:ckpt-2:force=false"), calls)
     }
 
     @Test

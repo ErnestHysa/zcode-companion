@@ -926,7 +926,9 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
     // F-P45-A: the force confirm carries the CONFIRMED (from, to) pair — recomputing
     // from the list index matched only at exactly two checkpoints.
     var forceConfirmFor by remember { mutableStateOf<Triple<com.zcode.android.domain.model.CheckpointMeta, com.zcode.android.domain.model.CheckpointMeta, List<String>>?>(null) }
-    var diffText by remember { mutableStateOf<String?>(null) }
+    // N-CA-1 (pass-0 Phase 4): the restore confirm NAMES the diff's files — the
+    // docstring's promise; diffCheckpoints was fully wired but had ZERO UI callers.
+    var confirmDiffFiles by remember { mutableStateOf<List<String>?>(null) }
     // vc51 Phase 4A (CKPT-HYDRATE): the card hydrates the host's checkpoint history on
     // entry — the list is no longer session-local, so snapshots created before an app
     // restart stay listed and restorable. Empty hydration (older hosts) keeps the
@@ -1021,16 +1023,33 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
                 )
             }
         }
-        diffText?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp).testTag("checkpoint_diff"))
-        }
     }
     restoringFor?.let { from ->
         val to = checkpoints.firstOrNull()
+        // N-CA-1: fetch the confirmed pair's diff so the confirm NAMES its files
+        // (the docstring's promise — the verb was fully wired below the UI, UI-dead).
+        androidx.compose.runtime.LaunchedEffect(from.checkpointId, to?.checkpointId) {
+            confirmDiffFiles = null
+            confirmDiffFiles = runCatching {
+                port.diffCheckpoints(from.checkpointId, to?.checkpointId ?: "")
+            }.getOrNull()?.files
+        }
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { restoringFor = null },
             title = { Text(stringResource(R.string.checkpoint_restore_title)) },
-            text = { Text(stringResource(R.string.checkpoint_restore_body, from.checkpointId, to?.checkpointId ?: "")) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.checkpoint_restore_body, from.checkpointId, to?.checkpointId ?: ""))
+                    confirmDiffFiles?.takeIf { it.isNotEmpty() }?.let { files ->
+                        Text(
+                            stringResource(R.string.checkpoint_diff_files, files.joinToString(", ")),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp).testTag("checkpoint_diff_files"),
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 com.zcode.android.core.ui.components.ZCodeButton(
                     onClick = {
@@ -1044,10 +1063,7 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
                                     val result = port.restoreCheckpoints(f.checkpointId, t.checkpointId, force = false)
                                     when {
                                         result == null -> notifier.show(failedCopy, long = true)
-                                        result.success -> {
-                                            diffText = null
-                                            notifier.show(restoredFmt.replace("0", result.restoredPaths.size.toString()))
-                                        }
+                                        result.success -> notifier.show(restoredFmt.replace("0", result.restoredPaths.size.toString()))
                                         // F-P45-A: the conflict arm carries the CONFIRMED
                                         // pair (f = the restore target, t = the head) —
                                         // never a recomputed list index.
