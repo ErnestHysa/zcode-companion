@@ -429,6 +429,18 @@ fun GitScreen(
                     }
                 }
             }
+            // N-BK-1 (pass-0 Phase 4): a HEALTHY empty history renders its empty state —
+            // never bare-blank (the app half; the rig half's fixture contract is fixed).
+            if (ui.commits.first.isEmpty() && ui.historyError == null) {
+                item(key = "history-empty") {
+                    Text(
+                        stringResource(R.string.git_history_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(8.dp).testTag("git_history_empty"),
+                    )
+                }
+            }
                 items(ui.commits.first, key = { it.hash }) { commit ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Text(commit.subject, style = MaterialTheme.typography.bodyMedium, maxLines = 2)

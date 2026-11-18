@@ -2,11 +2,13 @@ package com.zcode.android.features.git
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.GitBranchComparison
@@ -126,6 +128,9 @@ class GitRefusalSurfaceUiTest {
         rule.setContent { ZCodeTheme { GitScreen(port = port) } }
         rule.waitForIdle()
         rule.onAllNodesWithTag("git_history_error").assertCountEquals(0)
+        // the history section sits below the fold at this viewport — scroll it in
+        rule.onNodeWithTag("git_list").performScrollToNode(hasTestTag("git_history_empty"))
+        rule.waitForIdle()
         rule.onNodeWithTag("git_history_empty").assertIsDisplayed()
         rule.onNodeWithText("No commits yet").assertIsDisplayed()
     }

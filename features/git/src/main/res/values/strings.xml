@@ -16,6 +16,8 @@
     <string name="git_comparison_files">%1$d changed file(s) vs the tracking branch</string>
     <string name="git_comparison_unavailable">Branch comparison unavailable — the desktop refused the read</string>
     <string name="git_history_unavailable">History unavailable — the desktop refused the read</string>
+    <!-- N-BK-1 (pass-0 Phase 4): the healthy empty-history face. -->
+    <string name="git_history_empty">No commits yet</string>
     <!-- Phase 5B (A3.11): git checkpoints (restore = ⚠) -->
     <string name="checkpoints_title">Checkpoints</string>
     <string name="checkpoint_create">Snapshot</string>
