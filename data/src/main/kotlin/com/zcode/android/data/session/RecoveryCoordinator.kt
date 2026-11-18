@@ -91,6 +91,10 @@ class RecoveryCoordinator(
     /** Phase 6: per-session workspace target (§ v4 wire carries the workspace per call). */
     private val sessionWorkspaces = HashMap<String, Pair<String?, String?>>()
 
+    /** F-P7-A (pass-0 Phase 2): the session's OWN workspace target for interaction-scoped answers. */
+    fun sessionWorkspaceFor(sessionId: String): Pair<String?, String?>? =
+        synchronized(sessionWorkspaces) { sessionWorkspaces[sessionId] }
+
     /** F-P13-A: the record-less re-anchor cooldown (a failing subscribe must not chase every delta). */
     private val RECORDLESS_RESUBSCRIBE_COOLDOWN_MS = 10_000L
 

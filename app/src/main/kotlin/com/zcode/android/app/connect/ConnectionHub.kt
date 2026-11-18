@@ -1139,6 +1139,18 @@ class ConnectionHub(
             interactions = interactions,
             outbox = outbox,
             commands = gatewayFor(),
+            // F-P7-A (pass-0 Phase 2): inbox answers ride the INTERACTION's own
+            // workspace (the recovery map) with the conversation scope established
+            // before the send — on DIRECT a foreign-workspace approval otherwise
+            // answers into the active screen's scope and the resolve never reaches
+            // the wire (the pass-7 Approvals-screen receipt).
+            workspaceForSession = { sid -> coordinator?.sessionWorkspaceFor(sid.orEmpty()) },
+            ensureScope = { wp, wi ->
+                runCatching { activeTransport().ensureConversationListen(wp, wi) }
+                    .onFailure {
+                        log.warn("interaction.scope", "${it.javaClass.simpleName}: ${it.message?.take(80)}")
+                    }
+            },
             log = log,
         )
         interactionCoordinator = created

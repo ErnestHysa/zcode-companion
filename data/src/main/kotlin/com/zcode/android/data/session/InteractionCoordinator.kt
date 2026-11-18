@@ -41,6 +41,22 @@ class InteractionCoordinator(
     private val interactions: InteractionRepository,
     private val outbox: OutboxRepository,
     private val commands: CommandSender,
+    /**
+     * F-P7-A (pass-0 Phase 2): the session → workspace target map (the recovery
+     * coordinator's `sessionWorkspaces`). An inbox answer rides the INTERACTION's
+     * own workspace — the active transport target is whatever screen the user is
+     * on, and on DIRECT a foreign-workspace approval otherwise answers into the
+     * wrong scope (the pass-7 receipt: the v4 resolve never reached the wire).
+     */
+    private val workspaceForSession: (sessionId: String?) -> Pair<String?, String?>? = { null },
+    /**
+     * F-P7-A: establish the conversation scope for the answer's workspace BEFORE
+     * the send — the desktop's scoped listen gates the whole conversation plane
+     * (calls before it are silenced). The CommandCoordinator wires the identical
+     * seam for its sends; without it the inbox answer silently requires a
+     * session the Approvals screen never attached.
+     */
+    private val ensureScope: (suspend (workspacePath: String?, workspaceIdentity: String?) -> Unit)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
 ) {
@@ -165,6 +181,19 @@ class InteractionCoordinator(
     /** Which answer policy gates the submit (§20.4 permission vs the U9 elicitation plane). */
     enum class AnswerKind { PERMISSION, USER_INPUT }
 
+    /**
+     * F-P7-A: the interaction-scoped wire target — the session's OWN workspace
+     * (from the recovery map), never the active screen's target.
+     */
+    private suspend fun scopeFor(sessionId: String?): Pair<String?, String?>? {
+        val ws = workspaceForSession(sessionId)
+        if (ws != null) {
+            runCatching { ensureScope?.invoke(ws.first, ws.second) }
+                .onFailure { log.warn("interaction.scope", "${it.javaClass.simpleName}: ${it.message?.take(80)}") }
+        }
+        return ws
+    }
+
     suspend fun submit(
         interactionId: InteractionId,
         optionId: String,
@@ -243,6 +272,7 @@ class InteractionCoordinator(
             if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
                 outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
             }
+            val ws = scopeFor(request.sessionId)
             val ack = commands.send(
                 type = "resolveInteraction",
                 sessionId = request.sessionId,
@@ -250,6 +280,8 @@ class InteractionCoordinator(
                 baseRevision = null,
                 baseLogEpoch = null,
                 commandId = commandId.raw,
+                workspacePath = ws?.first,
+                workspaceIdentity = ws?.second,
             )
             outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
             val machineEvent = when (ack.status) {
@@ -481,6 +513,7 @@ class InteractionCoordinator(
             if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
                 outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
             }
+            val ws = scopeFor(request.sessionId)
             val ack = commands.send(
                 type = "resolveInteraction",
                 sessionId = request.sessionId,
@@ -488,6 +521,8 @@ class InteractionCoordinator(
                 baseRevision = null,
                 baseLogEpoch = null,
                 commandId = commandId.raw,
+                workspacePath = ws?.first,
+                workspaceIdentity = ws?.second,
             )
             outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
             val machineEvent = when (ack.status) {
@@ -584,6 +619,7 @@ class InteractionCoordinator(
             if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
                 outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
             }
+            val ws = scopeFor(request.sessionId)
             val ack = commands.send(
                 type = "resolveInteraction",
                 sessionId = request.sessionId,
@@ -591,6 +627,8 @@ class InteractionCoordinator(
                 baseRevision = null,
                 baseLogEpoch = null,
                 commandId = commandId.raw,
+                workspacePath = ws?.first,
+                workspaceIdentity = ws?.second,
             )
             outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
             val machineEvent = when (ack.status) {

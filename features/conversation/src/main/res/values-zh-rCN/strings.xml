@@ -196,6 +196,7 @@
     <string name="row_hook">钩子 · %1$s</string>
     <string name="queue_paused_suffix">" · 已暂停"</string>
     <string name="queue_expand_a11y">展开排队项</string>
+    <string name="approvals_answer_unconfirmed_no_task">回答未送达 — 请在此重试，或在桌面端回答。</string>
     <string name="queue_collapse_a11y">收起排队项</string>
     <string name="pending_sending">发送中…</string>
     <string name="pending_sent_unknown">发送状态不确定 — 连接已断开（不会重复发送）</string>

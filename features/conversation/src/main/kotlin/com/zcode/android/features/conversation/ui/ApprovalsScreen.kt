@@ -72,6 +72,11 @@ fun ApprovalsScreen(
     // copy here (per locale) and let the callbacks pick the resolved strings.
     val alreadyResolvedCopy = stringResource(R.string.approvals_already_resolved)
     val unconfirmedCopy = stringResource(R.string.approvals_answer_unconfirmed)
+    // F-P7-A (pass-0 Phase 2): the pass-7 receipt — "open the task" was unactionable
+    // on DIRECT when the approval's task has no row on this endpoint (foreign
+    // workspace). Validate the task row (K4's taskTitle resolution) BEFORE advising.
+    val unconfirmedNoTaskCopy = stringResource(R.string.approvals_answer_unconfirmed_no_task)
+    val unconfirmedFor = { hasTaskRow: Boolean -> if (hasTaskRow) unconfirmedCopy else unconfirmedNoTaskCopy }
 
     val topBarScroll = rememberZCodeTopBarScroll()
     Scaffold(
@@ -225,7 +230,7 @@ fun ApprovalsScreen(
                                                             answerError = when (outcome) {
                                                                 ConversationPort.AnswerOutcome.SUBMITTED -> null
                                                                 ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> null
-                                                                else -> unconfirmedCopy
+                                                                else -> unconfirmedFor(!record.taskTitle.isNullOrBlank())
                                                             }
                                                         }
                                                     } finally {
@@ -302,7 +307,7 @@ fun ApprovalsScreen(
                                     answerError = when (outcome) {
                                         ConversationPort.AnswerOutcome.SUBMITTED -> null
                                         ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> null
-                                        else -> unconfirmedCopy
+                                        else -> unconfirmedFor(!target.taskTitle.isNullOrBlank())
                                     }
                                 }
                             } finally {

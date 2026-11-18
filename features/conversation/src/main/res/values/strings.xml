@@ -212,6 +212,8 @@
     <string name="queue_paused_suffix">" · paused"</string>
     <!-- F-P8-D: the queue strip's two-way header disclosure toggle. -->
     <string name="queue_expand_a11y">Expand queued items</string>
+    <!-- F-P7-A: the unconfirmed-answer banner when the task row cannot be resolved (the "open the task" remedy is unactionable). -->
+    <string name="approvals_answer_unconfirmed_no_task">The answer was not delivered — retry here, or answer on the desktop.</string>
     <string name="queue_collapse_a11y">Collapse queued items</string>
     <string name="pending_sending">Sending…</string>
     <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
