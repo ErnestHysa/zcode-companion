@@ -143,6 +143,19 @@ fun GitScreen(
         return unstaged.getOrElse { emptyList() } to staged.getOrElse { emptyList() }
     }
 
+    // F-P40-A (pass-0 Phase 4): the write-ack refetch. The commit handler's
+    // fetchChanges() asymmetry was the shape — a switch/create ack re-reads the
+    // whole pane IN PLACE (summary + changes + comparison) so the branch block,
+    // Changes and comparison follow the moved head without re-entry.
+    suspend fun refetchAfterWriteAck() {
+        val summary = port.summary()
+        if (summary != null && summary.isRepository) {
+            ui = ui.copy(summary = summary, unavailable = false)
+        }
+        fetchChanges()
+        fetchComparison()
+    }
+
     LaunchedEffect(Unit) {
         val summary = port.summary()
         if (summary == null || !summary.isRepository) {
@@ -535,6 +548,7 @@ fun GitScreen(
                     val result = port.switchBranch(name)
                     if (result?.issues?.isNotEmpty() == true) gitBranchIssue = result.issues.first()
                     else if (result != null) notifierGit.show(switchedFmt.replace("x", name))
+                    if (result != null) refetchAfterWriteAck()
                 }
             },
             onCreateAndSwitch = { name ->
@@ -543,6 +557,7 @@ fun GitScreen(
                     val result = port.createBranchAndSwitch(name)
                     if (result?.issues?.isNotEmpty() == true) gitBranchIssue = result.issues.first()
                     else if (result != null) notifierGit.show(switchedFmt.replace("x", name))
+                    if (result != null) refetchAfterWriteAck()
                 }
             },
         )

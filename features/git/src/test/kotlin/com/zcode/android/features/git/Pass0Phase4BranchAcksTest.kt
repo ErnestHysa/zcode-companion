@@ -1,11 +1,13 @@
 package com.zcode.android.features.git
 
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -116,9 +118,10 @@ class Pass0Phase4BranchAcksTest {
             "the switch ack must re-read the pane's changes in place (RED pre-fix: nothing refetched)",
             port.changesCalls > callsBeforeAck,
         )
-        // and the served row follows the moved head
-        rule.onAllNodesWithTag("git_change_feature.kt", useUnmergedTree = true)
-            .fetchSemanticsNodes()
+        // and the served row follows the moved head (scroll the changes card into
+        // the viewport first — off-viewport LazyColumn items hold no nodes)
+        rule.onNodeWithTag("git_list").performScrollToNode(hasTestTag("git_change_feature.kt"))
+        rule.waitForIdle()
         assertTrue(
             "the Changes rows must follow the moved head without re-entry",
             rule.onAllNodesWithTag("git_change_feature.kt", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
