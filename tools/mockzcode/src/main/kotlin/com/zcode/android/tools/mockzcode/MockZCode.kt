@@ -3080,6 +3080,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name, argAsObject(arg))
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
+                // G102 (desktop 3.18.1): the custom-group plane lives on its dedicated
+                // channel (the legacy zcode-task group verbs are REMOVED upstream).
+                "task-groups" -> handleTaskGroupsPromise(id, name, arg)
                 "off-peak-task" -> handleOffPeakTaskPromise(id, name, arg)
                 "feedback" -> handleFeedbackPromise(id, name, argAsObject(arg))
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
@@ -5910,6 +5913,133 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
         }
     }
+
+        /**
+         * G102: the `task-groups` channel — desktop 3.18.1's createTaskGroupService
+         * shapes (chunk-TCPD6WAE.js): read()/save({id?,title?,color?})/ungroup(groupId)
+         * /move({node,sourceGroupId,groupId}) backed by the SAME in-memory state the
+         * legacy zcode-task group verbs used (the two protocols share one plane; the
+         * legacy words stay for the 3.14.5-era pins).
+         */
+        private fun handleTaskGroupsPromise(id: Int, name: String?, arg: RpcValue?) {
+            println("MOCK: task-groups ${name ?: "?"} args=${argAsObject(arg) ?: arg ?: JsonObject(emptyMap())}")
+            when (name) {
+                "read" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(taskGroupsSnapshot()))
+                "save" -> {
+                    val params = argAsObject(arg)
+                    val gid = params?.strOrNull("id")
+                    val title = params?.strOrNull("title")?.trim()?.ifEmpty { null }
+                    val color = params?.strOrNull("color")?.trim()?.ifEmpty { null }
+                    synchronized(script.taskGroups) {
+                        val existing = gid?.let { g -> script.taskGroups.indexOfFirst { (it["id"] as? JsonPrimitive)?.content == g } }
+                        if (gid != null && (existing == null || existing < 0)) {
+                            respondError(id, "task-group.not-found")
+                            return
+                        }
+                        if (gid != null && existing != null) {
+                            val updated = HashMap<String, kotlinx.serialization.json.JsonElement>(script.taskGroups[existing])
+                            title?.let { updated["title"] = JsonPrimitive(it) }
+                            color?.let { updated["color"] = JsonPrimitive(it) }
+                            updated["updatedAt"] = JsonPrimitive(System.currentTimeMillis())
+                            val group = JsonObject(updated)
+                            script.taskGroups[existing] = group
+                            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(group))
+                        } else {
+                            val now = System.currentTimeMillis()
+                            val group = buildJsonObject {
+                                put("id", JsonPrimitive("task-group-${script.taskGroups.size + 1}"))
+                                put("title", JsonPrimitive(title ?: "New group"))
+                                put("color", JsonPrimitive(color ?: "gray"))
+                                put("createdAt", JsonPrimitive(now)); put("updatedAt", JsonPrimitive(now))
+                            }
+                            script.taskGroups.add(group)
+                            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(group))
+                        }
+                    }
+                }
+                "ungroup" -> {
+                    val gid = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+                    if (gid == null) respondError(id, "fault.mock.unscripted:task-groups.ungroup")
+                    else {
+                        synchronized(script.taskGroups) {
+                            script.taskGroups.removeAll { (it["id"] as? JsonPrimitive)?.content == gid }
+                            script.taskGroupMembers.remove(gid)
+                        }
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                    }
+                }
+                "move" -> {
+                    val params = argAsObject(arg)
+                    val node = params?.get("node") as? JsonObject
+                    val taskId = ((node?.get("task") as? JsonObject)?.strOrNull("taskId"))
+                    val sourceGroupId = params?.get("sourceGroupId")?.let { (it as? JsonPrimitive)?.takeIf { p -> p !is kotlinx.serialization.json.JsonNull }?.content }
+                    val targetGroupId = params?.get("groupId")?.let { (it as? JsonPrimitive)?.takeIf { p -> p !is kotlinx.serialization.json.JsonNull }?.content }
+                    if (taskId == null) {
+                        respondError(id, "fault.mock.unscripted:task-groups.move")
+                        return
+                    }
+                    synchronized(script.taskGroups) {
+                        // The desktop validates the source itself (task-group.stale-source).
+                        val currentGroup = script.taskGroupMembers.entries.firstOrNull { taskId in it.value }?.key
+                        if (currentGroup != sourceGroupId) {
+                            respondError(id, "task-group.stale-source")
+                            return
+                        }
+                        currentGroup?.let { g ->
+                            val members = script.taskGroupMembers[g]?.toMutableList() ?: mutableListOf()
+                            members.remove(taskId)
+                            script.taskGroupMembers[g] = members
+                        }
+                        targetGroupId?.let { g ->
+                            if (script.taskGroups.none { (it["id"] as? JsonPrimitive)?.content == g }) {
+                                respondError(id, "task-group.not-found")
+                                return
+                            }
+                            val members = script.taskGroupMembers.getOrPut(g) { mutableListOf() }
+                            members.add(taskId)
+                        }
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                    }
+                }
+                else -> respondError(id, "fault.mock.unknownMethod:task-groups.$name")
+            }
+        }
+
+        /** G102 self-test seam: the task-groups channel words (the shared-state mutations). */
+        internal fun taskGroupsPromiseForTest(id: Int, name: String, arg: RpcValue) =
+            handleTaskGroupsPromise(id, name, arg)
+
+        /** The `read()` projection over the shared group state (groups ∪ members ∪ order). */
+        private fun taskGroupsSnapshot(): JsonObject = synchronized(script.taskGroups) {
+            val grouped = script.taskGroupMembers.values.flatten().toSet()
+            val groups = JsonArray(script.taskGroups.map { it })
+            val members = JsonArray(script.taskGroupMembers.flatMap { (gid, ids) ->
+                ids.mapIndexed { idx, tid -> buildJsonObject {
+                    put("groupId", JsonPrimitive(gid))
+                    put("workspaceKey", JsonPrimitive(workspace.workspaceIdentity ?: workspace.workspacePath))
+                    put("taskId", JsonPrimitive(tid))
+                    put("sortOrder", JsonPrimitive(idx.toLong()))
+                } }
+            })
+            val loose = script.directTasks.filter { taskIdOf(it) !in grouped && taskIdOf(it) !in script.pinnedTaskIds && taskIdOf(it) !in script.archivedTaskIds }
+                .map { taskIdOf(it) }
+            val order = JsonArray(buildList {
+                script.taskGroups.forEach { g -> add(buildJsonObject {
+                    put("type", JsonPrimitive("group"))
+                    put("key", JsonPrimitive((g["id"] as? JsonPrimitive)?.content ?: ""))
+                    put("sortOrder", JsonPrimitive(size.toLong()))
+                }) }
+                loose.forEach { tid -> add(buildJsonObject {
+                    put("type", JsonPrimitive("task"))
+                    // The desktop's task order key = JSON.stringify([workspaceKey, taskId]) (Q()).
+                    put("key", JsonPrimitive(kotlinx.serialization.json.Json.encodeToString(kotlinx.serialization.json.JsonArray(
+                        listOf(JsonPrimitive(workspace.workspaceIdentity ?: workspace.workspacePath), JsonPrimitive(tid)),
+                    ))))
+                    put("sortOrder", JsonPrimitive(size.toLong()))
+                }) }
+            })
+            buildJsonObject { put("groups", groups); put("members", members); put("order", order) }
+        }
 
         private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
         synchronized(taskChannelLedger) { taskChannelLedger.add((name ?: "?") to (arg ?: JsonObject(emptyMap()))) }
