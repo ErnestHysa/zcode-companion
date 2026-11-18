@@ -50,4 +50,25 @@ class GitA11yTest {
             assertNotNull("git row must carry a role", r.config.getOrNull(SemanticsProperties.Role))
         }
     }
+
+    @Test
+    fun `the row action a11y labels carry the path - N-BY-1`() {
+        // N-BY-1: the semantics replaced the literal "%s" but the resources are
+        // POSITIONAL ("Stage %1$s") — the replace never matched and every TalkBack
+        // user heard the raw format string (dump receipted across 3 passes).
+        rule.setContent { ZCodeTheme { GitScreen(port = port) } }
+        rule.waitForIdle()
+        val stage = rule.onNodeWithTag("git_stage_src/main.rs").fetchSemanticsNode()
+        val stageCd = stage.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+        assertTrue(
+            "the Stage label must carry the path (RED pre-fix: \"Stage %1\$s\"); got $stageCd",
+            stageCd.any { it.contains("src/main.rs") },
+        )
+        val discard = rule.onNodeWithTag("git_discard_entry_src/main.rs").fetchSemanticsNode()
+        val discardCd = discard.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+        assertTrue(
+            "the Discard label must carry the path (RED pre-fix: \"Discard %1\$s\"); got $discardCd",
+            discardCd.any { it.contains("src/main.rs") },
+        )
+    }
 }
