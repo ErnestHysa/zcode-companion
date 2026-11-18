@@ -428,14 +428,6 @@ fun main() {
     if (System.getenv("MOCK_CHECKPOINT_CONFLICTS") != null) {
         mock.script.checkpointConflicts = true
     }
-    // pass-0 Phase 4 rig leg (N-BK-1): MOCK_GIT_EMPTY_COMMITS=1 serves a HEALTHY but
-    // EMPTY commit graph (getCommitGraph ok with commits=[] hasMore=false) — the app
-    // half's "No commits yet" empty state is drivable live (the unscripted fixture
-    // refuses instead, which is the F-P5-A face, not the empty face).
-    if (System.getenv("MOCK_GIT_EMPTY_COMMITS") == "1") {
-        mock.script.gitCommits = kotlinx.serialization.json.JsonArray(emptyList())
-        mock.script.gitHasMore = false
-    }
     // Pass-27 rig leg: MOCK_FILECHANGES seeds the conversationFileChanges queue (pass-26
     // rig debt: the view chip's TurnDiffDialog had only ever seen fault.fileChanges.none).
     // Two entries so a second open in the same relay lifetime still serves content.
@@ -991,6 +983,15 @@ fun main() {
         // authoredAtMs (data/Phase9Tools.kt) — the old `oid`/`message`/`timestamp`
         // keys dropped EVERY row (hash was required) so History rendered silent-empty.
         mock.script.gitCommits = RigGitFixtures.commits()
+    }
+    // pass-0 Phase 4 rig leg (N-BK-1): MOCK_GIT_EMPTY_COMMITS=1 serves a HEALTHY but
+    // EMPTY commit graph (getCommitGraph ok with commits=[] hasMore=false) — the app
+    // half's "No commits yet" empty state is drivable live (the unscripted fixture
+    // refuses instead, which is the F-P5-A face, not the empty face). Runs AFTER the
+    // MOCK_GIT fixture arm so the override wins ordering.
+    if (System.getenv("MOCK_GIT_EMPTY_COMMITS") == "1") {
+        mock.script.gitCommits = kotlinx.serialization.json.JsonArray(emptyList())
+        mock.script.gitHasMore = false
     }
     // G67 (vc52 Phase 11): MOCK_REMOTE_DOWN_MS=N arms the remote-down fixture N ms
     // after startup — the NEXT bridge-open fails with the typed disconnected-remote
