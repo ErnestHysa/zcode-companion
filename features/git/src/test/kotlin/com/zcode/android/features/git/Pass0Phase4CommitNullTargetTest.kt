@@ -61,6 +61,13 @@ class Pass0Phase4CommitNullTargetTest {
         override suspend fun identity(): GitIdentity? = GitIdentity("Ernest", "ernest@example.test")
 
         override suspend fun commit(message: String, stagedOnly: Boolean): com.zcode.android.domain.model.GitCommitResult? = null
+
+        /** The DefaultGitPort shape post-fix: the null target is a TYPED refusal. */
+        override suspend fun commitOutcome(message: String, stagedOnly: Boolean): GitPort.CommitOutcome =
+            GitPort.CommitOutcome(
+                result = null,
+                refusal = GitPort.GitWriteRefusal(noTarget = true, message = null),
+            )
     }
 
     @Test

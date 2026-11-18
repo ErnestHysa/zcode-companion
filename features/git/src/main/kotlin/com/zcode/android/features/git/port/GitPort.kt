@@ -113,6 +113,15 @@ interface GitPort {
      * DefaultGitPort override is the honest shape). */
     suspend fun pushOutcome(): PushOutcome = PushOutcome(push(), null)
 
+    /** F-P10-A: the typed commit outcome — a null workspace target is a TYPED refusal
+     * (never the silent `?: return null` exit), and a refused call carries its reason. */
+    data class CommitOutcome(val result: com.zcode.android.domain.model.GitCommitResult?, val refusal: GitWriteRefusal?)
+
+    /** Default delegates to [commit] (the null-target/refused distinction is the
+     * DefaultGitPort override's shape). */
+    suspend fun commitOutcome(message: String, stagedOnly: Boolean): CommitOutcome =
+        CommitOutcome(commit(message, stagedOnly), null)
+
     /**
      * G53 (vc52 Phase 11): `getBranchComparison` — the base/head + per-file changes
      * between the tracking branch and HEAD. null = the channel refused (the §13.3

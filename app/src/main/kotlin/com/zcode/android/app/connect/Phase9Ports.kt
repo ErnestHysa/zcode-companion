@@ -229,6 +229,37 @@ class DefaultGitPort(
     override suspend fun commit(message: String, stagedOnly: Boolean): com.zcode.android.domain.model.GitCommitResult? =
         writeOp("commit") { com.zcode.android.domain.model.GitCommitResult.decode(hub.activeTransport().gitCommit(it, message, null, stagedOnly)) }
 
+    /** F-P10-A: the null write-target is a TYPED refusal — never the silent exit. */
+    override suspend fun commitOutcome(
+        message: String,
+        stagedOnly: Boolean,
+    ): com.zcode.android.features.git.port.GitPort.CommitOutcome {
+        val wp = workspacePath()
+            ?: return com.zcode.android.features.git.port.GitPort.CommitOutcome(
+                null,
+                com.zcode.android.features.git.port.GitPort.GitWriteRefusal(noTarget = true, message = null),
+            )
+        return try {
+            com.zcode.android.features.git.port.GitPort.CommitOutcome(
+                com.zcode.android.domain.model.GitCommitResult.decode(
+                    hub.activeTransport().gitCommit(wp, message, null, stagedOnly),
+                ),
+                null,
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.commit", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            com.zcode.android.features.git.port.GitPort.CommitOutcome(
+                null,
+                com.zcode.android.features.git.port.GitPort.GitWriteRefusal(
+                    noTarget = false,
+                    message = e.message ?: e.javaClass.simpleName,
+                ),
+            )
+        }
+    }
+
     override suspend fun generateCommitMessage(includeUnstaged: Boolean): String? =
         generateCommitMessageOutcome(includeUnstaged).message
 

@@ -491,8 +491,11 @@ fun GitScreen(
             onCommit = { message, includeUnstaged, andPush ->
                 showCommit = false
                 scope.launch {
-                    val result = port.commit(message, stagedOnly = !includeUnstaged)
-                    val hash = result?.commitHash
+                    // F-P10-A: the outcome is typed — a null workspace target or a refused
+                    // call renders a refusal face (the `if (hash != null)…else nothing` was
+                    // the silent exit).
+                    val outcome = port.commitOutcome(message, stagedOnly = !includeUnstaged)
+                    val hash = outcome.result?.commitHash
                     if (hash != null) {
                         notifierGit.show(commitDoneFmt.replace("x", hash.take(8)))
                         fetchChanges()
@@ -500,6 +503,15 @@ fun GitScreen(
                             val summary = ui.summary
                             pushFor = (summary?.branchName ?: "") to (summary?.trackingBranchName != null)
                         }
+                    } else {
+                        val face = outcome.refusal
+                        notifierGit.show(
+                            when {
+                                face == null || face.noTarget -> writeUnavailableCopy
+                                else -> face.message ?: writeUnavailableCopy
+                            },
+                            long = true,
+                        )
                     }
                 }
             },
