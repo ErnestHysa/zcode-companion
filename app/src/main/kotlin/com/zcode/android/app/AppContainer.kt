@@ -11,6 +11,7 @@ import com.zcode.android.app.connect.ConnectionHub
 import com.zcode.android.app.diagnostics.DiagnosticsFileStore
 import com.zcode.android.app.connect.DefaultCodingPlanPort
 import com.zcode.android.app.connect.DefaultConversationPort
+import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.app.connect.DefaultFilesPort
 import com.zcode.android.app.connect.DefaultGitPort
 import com.zcode.android.app.connect.DefaultAutomationsPort
@@ -105,8 +106,23 @@ class AppContainer(context: Context) {
         // receiver outlives any screen).
         com.zcode.android.app.notifications.NotificationActionReceiver.answerDelegate = { interactionId, optionId, _ ->
             stores.appScope.launch {
-                runCatching { conversationPort.answerFromInbox(interactionId, optionId, null) }
+                val outcome = runCatching { conversationPort.answerFromInbox(interactionId, optionId, null) }
                     .onFailure { log.warn("notif.action", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+                    .getOrNull()
+                // F-P7-B (pass-0 Phase 2): an answer that did NOT reach the desktop
+                // gets a VISIBLE face — the shade tap cancelled the notification and
+                // the old delegate dropped the outcome ("the card simply clears; no
+                // notice, no retry", pass-13 P.A5). Delivered (or harmless) outcomes
+                // stay silent; everything else re-posts the shade face for the retry
+                // (the outbox entry is retryable, INV-4's same-commandId re-tap).
+                when (outcome) {
+                    ConversationPort.AnswerOutcome.SUBMITTED,
+                    ConversationPort.AnswerOutcome.ALREADY_RESOLVED,
+                    ConversationPort.AnswerOutcome.DUPLICATE_NO_OP,
+                    null -> Unit
+                    else -> runCatching { stores.notificationBroker.repostInteractionNow(interactionId) }
+                        .onFailure { log.warn("notif.repost", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+                }
             }
         }
         // F-37-B: a shade decision that arrived while the device was locked was discarded.

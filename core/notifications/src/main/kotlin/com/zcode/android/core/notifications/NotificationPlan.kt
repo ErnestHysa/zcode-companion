@@ -95,6 +95,8 @@ object NotificationPlan {
         /** C3: the shade action labels (defaults for the pure tests). */
         fun approveAction(): String = "Approve"
         fun denyAction(): String = "Deny"
+        /** F-P7-B: the not-delivered shade answer's re-post face. */
+        fun undeliveredAnswer(): String = "Answer not delivered — tap to retry"
     }
 
     /** English copy (the §24.1 table verbatim) — the default for pure tests. */

@@ -236,6 +236,66 @@ class NotificationBroker(
         }
     }
 
+    /**
+     * F-P7-B (pass-0 Phase 2): re-show ONE interaction's attention notification
+     * immediately — a shade answer that did NOT reach the desktop. The receiver's
+     * tap cancelled the system notification while the answer stayed undelivered
+     * (offline / outcome lost); the re-post is the visible not-delivered/retry
+     * face (the pass-13 receipt: "the card simply clears; no notice, no retry").
+     * The re-post replicates the background re-post's shape: the subject, the
+     * approval's shade actions and the fuse, gated by the same F-36-B open-set
+     * rule. No unseen record for the id → no-op (the in-app card face remains).
+     */
+    suspend fun repostInteractionNow(interactionId: String): Boolean {
+        val record = synchronized(this) {
+            visibleRecords.values.firstOrNull {
+                it.interactionId == interactionId && it.seenAtMs == null && it.kind.isAttention
+            }
+        } ?: run {
+            log.info("notify.repostSkip", "interaction=${interactionId.take(24)} (no unseen attention record)")
+            return false
+        }
+        val gateOpen = runCatching { repostGate(interactionId) }.getOrNull()
+        if (gateOpen == false) {
+            log.info("notify.repostSkip", "key=${record.notificationKey.take(24)} (interaction closed)")
+            return false
+        }
+        val subject = runCatching { subjectProvider(interactionId) }.getOrNull()
+        val decision = NotificationPlan.decide(
+            NotificationPlan.Event(record.kind, subject = subject),
+            NotificationPlan.Policy(appForeground = false, contentLevel = contentLevel(), soundOn = soundEnabledProvider()),
+            copy,
+        )
+        if (!decision.show) return false
+        // A12's replication rule: the shade actions ride the FRESH path's gate.
+        val actions = if (record.kind == NotificationRecord.Kind.APPROVAL_NEEDED && decision.shadeActions &&
+            record.interactionId != null && record.taskId != null
+        ) {
+            listOf(
+                SpecAction(NotificationActions.ID_APPROVE, copy.approveAction(), record.interactionId!!, record.taskId!!, "allowOnce"),
+                SpecAction(NotificationActions.ID_DENY, copy.denyAction(), record.interactionId!!, record.taskId!!, "deny"),
+            )
+        } else {
+            emptyList()
+        }
+        val deadline = runCatching { deadlineProvider(interactionId) }.getOrNull()
+        sink.show(
+            Spec(
+                key = record.notificationKey,
+                channelId = decision.channelId,
+                publicText = copy.undeliveredAnswer(),
+                detailText = subject,
+                groupKey = groupKey,
+                deepLinkTaskId = record.taskId,
+                deepLinkInteractionId = record.interactionId,
+                actions = actions,
+                deadlineAtMs = deadline,
+            ),
+        )
+        log.info("notify.repostUndelivered", "key=${record.notificationKey.take(24)} interaction=${interactionId.take(24)}")
+        return true
+    }
+
     /** The app is FOREGROUND again — in-app surfaces own attention now (§9.9). */
     suspend fun onForegroundEntry() {
         foreground = true

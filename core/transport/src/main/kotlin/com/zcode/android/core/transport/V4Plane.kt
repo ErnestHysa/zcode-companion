@@ -629,6 +629,22 @@ internal class ChannelV4Plane(
             // Server-side fault (fault.* namespace) — task-class rejection, user-retry.
             bound().warn("v4.call", "$name channel error: ${e.detail.take(100)}")
             throw TransportFailure(ErrorMapping.taskRejected(e.detail))
+        } catch (e: ChannelSession.Failure.Closed) {
+            // F-P7-B (pass-0 Phase 2): a CLOSED channel is a TRANSPORT-class loss,
+            // never a server verdict. The old generic-failure mapping
+            // (protocolFault → PROTOCOL) sat in the serverSpoke set, so the
+            // InteractionCoordinator treated a dead channel as an AUTHORITATIVE
+            // rejection — the shade answer died FAILED (no retry, no face; the
+            // pass-7/13 receipts: "interaction.rejected :: channel closed:
+            // abnormal close 1006"). TRANSPORT means the outcome is genuinely
+            // UNKNOWN (§15.5) → the coordinator's retryable path.
+            bound().warn("v4.call", "$name channel closed: ${e.message?.take(100)}")
+            throw TransportFailure(transportLoss(e.message ?: "channel closed"))
+        } catch (e: ChannelSession.Failure.NotInitialized) {
+            // Same class: the channel was never initialized — a local connection-
+            // state fact, not a server verdict (the F-P7-A Approvals-screen shape).
+            bound().warn("v4.call", "$name before initialize")
+            throw TransportFailure(transportLoss("channel not initialized"))
         } catch (e: ChannelSession.Failure) {
             bound().warn("v4.call", "$name failed: ${e.message?.take(100)}")
             throw TransportFailure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
