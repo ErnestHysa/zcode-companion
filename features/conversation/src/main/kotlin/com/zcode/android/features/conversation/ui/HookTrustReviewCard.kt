@@ -112,10 +112,18 @@ fun HookTrustReviewCard(
             // caller caps the card inside the pinned budget) and "Trust N selected" is
             // PINNED at the card's bottom edge — Trust used to need a magic swipe (the
             // first swipes over the card scrolled the pinned STACK instead of the card).
+            // N-BG-1/D4 + F-P3-A (pass-0 Phase 2): the item list scrolls in ITS OWN
+            // viewport. A LazyColumn measures items with UNBOUNDED main-axis
+            // constraints, so this weight resolved to ZERO whenever the CARD was not
+            // itself bounded — the caller's per-card cap (ConversationScreen) is what
+            // gives the weight real space (the pass-44 live face: "summary →
+            // disabled trust area", the answer leg gated).
             Column(
                 Modifier
                     .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    // F-P3-A pin seam: the body's own observable (bounds/height asserts).
+                    .testTag("hook_review_items"),
             ) {
                 for (item in hook.items) {
                 Row(

@@ -1,8 +1,22 @@
 package com.zcode.android.features.conversation
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.ConversationRow
@@ -13,11 +27,14 @@ import com.zcode.android.domain.model.WorkspaceHookReview
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ui.ConversationScreen
+import com.zcode.android.features.conversation.ui.HookTrustReviewCard
 import kotlinx.serialization.json.buildJsonObject
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+
 
 /**
  * F-P3-A (pass-0 Phase 2; 12+ ledger stamps, passes 1–9/12/33/44): the pinned
@@ -152,9 +169,21 @@ class Pass0Phase2PinnedBudgetTest {
     }
 
     @Test
-    fun `F-P3-A - the question card's BODY renders - question header and option rows visible`() {
+    fun `F-P3-A - the question card's BODY has real height and its content is reachable`() {
         setContent(listOf(questionCard()))
+        // Pre-fix the weighted body measured ZERO high: the node's bounds height was 0
+        // and no body content could ever be revealed. Post-fix the card is bounded,
+        // the body keeps real height, and its content scrolls INSIDE the card (the
+        // D4 contract) — the first question group is reachable by that scroll.
+        val body = rule.onAllNodesWithTag("userinput_body").fetchSemanticsNodes()
+        assertTrue("the card must expose its own scrollable answer body", body.isNotEmpty())
+        assertTrue(
+            "the body must have real height (pre-fix: 0px)",
+            body[0].boundsInRoot.height > 0f,
+        )
+        rule.onNodeWithTag("userinput_q_header_0").performScrollTo()
         rule.onNodeWithTag("userinput_q_header_0").assertIsDisplayed()
+        rule.onNodeWithTag("userinput_q0_opt_email").performScrollTo()
         rule.onNodeWithTag("userinput_q0_opt_email").assertIsDisplayed()
     }
 
@@ -163,8 +192,19 @@ class Pass0Phase2PinnedBudgetTest {
         setContent(listOf(hookCard()))
         // Pre-fix the weighted item list measured ZERO high: not even the first row
         // painted. Post-fix the card is bounded, the list keeps real height (deeper
-        // rows scroll INSIDE the card — the D4 contract) and h-1 is on screen.
-        rule.onNodeWithTag("hook_review_item_h-1").assertIsDisplayed()
+        // rows scroll INSIDE the card — the D4 contract) and h-1 is on screen or one
+        // scroll away inside the card's own viewport.
+        // Lazy prefetch may compose h-1 slightly outside the fold — scroll it into
+        // the card's own viewport first (a no-op when already visible).
+        rule.onNodeWithTag("hook_review_item_h-1").performScrollTo()
+        fun b(tag: String) = runCatching {
+            rule.onAllNodesWithTag(tag).fetchSemanticsNodes().joinToString { it.boundsInRoot.toString() }
+        }.getOrDefault("?")
+        val h1 = rule.onNodeWithTag("hook_review_item_h-1").fetchSemanticsNode()
+        assertTrue(
+            "h-1 must be revealed (h1=${h1.boundsInRoot} card=${b("hook_review_card_hook-body")} body=${b("hook_review_items")} trust=${b("hook_review_trust_selected")} h2=${b("hook_review_item_h-2")})",
+            h1.boundsInRoot.height > 0f,
+        )
     }
 
     @Test

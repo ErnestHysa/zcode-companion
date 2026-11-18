@@ -491,8 +491,12 @@ fun UserInputCard(
             Spacer(Modifier.height(6.dp))
             // G77: an expired fuse renders NO answer plane (the desktop auto-continued).
             if (!fuseExpired) {
-                // N-BG-1: the scrollable answer body — capped by the card's own height
-                // (the pinned budget share); short content lays out at its intrinsic.
+                // N-BG-1 + F-P3-A (pass-0 Phase 2): the scrollable answer body. A
+                // LazyColumn measures items with UNBOUNDED main-axis constraints, so
+                // this weight resolved to ZERO whenever the CARD was not itself
+                // bounded — the caller's per-card cap (ConversationScreen) is what
+                // gives the weight real space (the pass-44 live face: the question
+                // body never painted, the answer leg gated).
                 Column(
                     Modifier
                         .weight(1f, fill = false)
