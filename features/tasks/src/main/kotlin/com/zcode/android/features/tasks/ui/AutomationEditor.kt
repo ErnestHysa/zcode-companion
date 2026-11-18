@@ -263,9 +263,9 @@ internal fun AutomationEditorDialog(
                     Triple(Frequency.CUSTOM, R.string.automations_freq_custom, "custom"),
                     Triple(Frequency.RAW, R.string.automations_sched_cron, "cron"),
                 )
-                ChipGrid(freqChips, perRow = 4) { (freq, label, tag) ->
+                ChipGrid(freqChips, perRow = 4) { (freq, label, tag), cell ->
                     val selected = if (freq == null) s.once else !s.once && f == freq
-                    FreqChip(stringResource(label), selected, "automation_freq_$tag") {
+                    FreqChip(stringResource(label), selected, "automation_freq_$tag", modifier = cell) {
                         s = if (freq == null) s.copy(once = true) else s.copy(once = false, builder = s.builder.copy(frequency = freq))
                     }
                 }
@@ -304,17 +304,17 @@ internal fun AutomationEditorDialog(
                                     CustomUnit.MONTHLY to R.string.automations_unit_monthly, CustomUnit.YEARLY to R.string.automations_unit_yearly,
                                 ),
                                 perRow = 3,
-                            ) { (unit, label) ->
-                                FreqChip(stringResource(label), builder.customUnit == unit, "automation_unit_${unit.wire}") {
+                            ) { (unit, label), cell ->
+                                FreqChip(stringResource(label), builder.customUnit == unit, "automation_unit_${unit.wire}", modifier = cell) {
                                     s = s.copy(builder = s.builder.copy(customUnit = unit))
                                 }
                             }
                             if (builder.customUnit == CustomUnit.MONTHLY) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FreqChip(stringResource(R.string.automations_monthly_date), builder.customMonthlyMode == MonthlyMode.DATE, "automation_monthly_date") {
+                                    FreqChip(stringResource(R.string.automations_monthly_date), builder.customMonthlyMode == MonthlyMode.DATE, "automation_monthly_date", modifier = Modifier.weight(1f)) {
                                         s = s.copy(builder = s.builder.copy(customMonthlyMode = MonthlyMode.DATE))
                                     }
-                                    FreqChip(stringResource(R.string.automations_monthly_weekday), builder.customMonthlyMode == MonthlyMode.WEEKDAY, "automation_monthly_weekday") {
+                                    FreqChip(stringResource(R.string.automations_monthly_weekday), builder.customMonthlyMode == MonthlyMode.WEEKDAY, "automation_monthly_weekday", modifier = Modifier.weight(1f)) {
                                         s = s.copy(builder = s.builder.copy(customMonthlyMode = MonthlyMode.WEEKDAY))
                                     }
                                 }
@@ -337,8 +337,8 @@ internal fun AutomationEditorDialog(
                         if (f == Frequency.WEEKLY || (f == Frequency.CUSTOM && (builder.customUnit == CustomUnit.WEEKLY || (builder.customUnit == CustomUnit.MONTHLY && builder.customMonthlyMode == MonthlyMode.WEEKDAY)))) {
                             val single = f == Frequency.CUSTOM && builder.customUnit == CustomUnit.MONTHLY
                             val selected = if (f == Frequency.WEEKLY) builder.weekdays else builder.customWeekdays
-                            ChipGrid(AutomationSchedule.WEEKDAY_ORDER, perRow = 4) { d ->
-                                FreqChip(labels.weekday(d), d in selected, "automation_wd_$d") {
+                            ChipGrid(AutomationSchedule.WEEKDAY_ORDER, perRow = 4) { d, cell ->
+                                FreqChip(labels.weekday(d), d in selected, "automation_wd_$d", modifier = cell) {
                                     val next = when {
                                         single -> listOf(d)
                                         d in selected -> selected - d
@@ -461,22 +461,28 @@ internal fun AutomationEditorDialog(
 /**
  * Deterministic chip wrapping: fixed chips per row, no intrinsic measurement — a
  * FlowRow inside M3's intrinsically-sized AlertDialog oscillated (Compose never idled).
+ * N-BK-2 (pass-0 Phase 5): each chip of a row WEIGHT-SHARES the row's width (and the
+ * label wraps to two lines rather than clipping) — the old intrinsic-width rows
+ * painted past the pane edge at device font metrics ("Weekda"/"Cr", pass-4 G.A2 +
+ * pass-16 S.A3), while weight-constrained chips fit at ANY width/font scale.
  */
 @Composable
-private fun <T> ChipGrid(items: List<T>, perRow: Int, chip: @Composable (T) -> Unit) {
+private fun <T> ChipGrid(items: List<T>, perRow: Int, chip: @Composable (T, Modifier) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items.chunked(perRow).forEach { line ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { line.forEach { chip(it) } }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                line.forEach { item -> chip(item, Modifier.weight(1f)) }
+            }
         }
     }
 }
 
 @Composable
-private fun FreqChip(label: String, selected: Boolean, tag: String, onClick: () -> Unit) {
+private fun FreqChip(label: String, selected: Boolean, tag: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label, maxLines = 1, style = MaterialTheme.typography.labelMedium) },
-        modifier = Modifier.testTag(tag),
+        label = { Text(label, maxLines = 2, style = MaterialTheme.typography.labelMedium) },
+        modifier = modifier.then(Modifier.testTag(tag)),
     )
 }
