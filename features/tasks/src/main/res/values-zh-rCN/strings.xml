@@ -26,6 +26,9 @@
     <!-- Phase 4D (L6.3+J4 / H1.1)：任务生命周期 + 搜索 -->
     <string name="tasks_search_hint">搜索任务</string>
     <string name="tasks_search_empty">没有匹配的任务。</string>
+    <!-- F-P43-A: the search pane states the window honestly (desktop taskList.showMore parity). -->
+    <string name="tasks_search_count">显示前 %1$d 个（共 %2$d 个匹配）</string>
+    <string name="tasks_search_show_more">显示全部 %1$d 个匹配</string>
     <string name="task_delete_title">删除任务？</string>
     <string name="task_actions_desc">任务操作</string>
     <string name="task_delete_body">删除“%1$s”？该任务的所有记录无法恢复。</string>

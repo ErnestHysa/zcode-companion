@@ -57,7 +57,8 @@ class TaskManagementVmTest {
         override fun repairPairing() {}
         override fun observeWorkspaces() = MutableStateFlow(emptyList<com.zcode.android.domain.model.WorkspaceOption>())
         override suspend fun createTask(workspaceKey: String, firstText: String, provider: String?, model: String?) = outcome
-        override suspend fun searchTasks(query: String): List<TaskSearchHit> = emptyList()
+        override suspend fun searchTasks(query: String, limit: Int): com.zcode.android.features.tasks.port.TaskSearchResult =
+            com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
 
         override suspend fun setTaskPinned(taskId: String, pinned: Boolean): Boolean { calls += "pin:$taskId:$pinned"; return outcome }
         override suspend fun setTaskUnread(taskId: String, unread: Boolean, expectedUnreadAt: Long?): Boolean { calls += "unread:$taskId:$unread:$expectedUnreadAt"; return outcome }

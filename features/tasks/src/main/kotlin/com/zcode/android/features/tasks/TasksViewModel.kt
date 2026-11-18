@@ -41,6 +41,9 @@ data class TasksUiState(
     // ---- Phase 4D (L6.3+J4 / H1.1) ----
     /** H1.1: live task-search results (empty = no query / no matches). */
     val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit> = emptyList(),
+    /** F-P43-A: the wire's pagination answer — the pane's count face + show-more. */
+    val searchTotal: Int = 0,
+    val searchHasMore: Boolean = false,
     /** The active search query (drives the results surface). */
     val searchQuery: String = "",
     /** One-shot lifecycle-action notice (delete/archive/rename outcome). */
@@ -68,6 +71,9 @@ data class TasksUiState(
     companion object {
         /** The TIMELINE organize's single flat group key (never a workspace path). */
         const val TIMELINE_GROUP_KEY = "timeline"
+
+        /** F-P43-A: the initial search limit (the port's desktop-parity default 20). */
+        const val SEARCH_LIMIT = 20
     }
 
     /** Unread rows (wire `unreadAt`) — the badge count the list header shows. */
@@ -138,7 +144,15 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     }
 
     // ---- Phase 4D: task lifecycle + search ----
-    private val searchResults = kotlinx.coroutines.flow.MutableStateFlow<List<com.zcode.android.features.tasks.port.TaskSearchHit>>(emptyList())
+    /** F-P43-A: the search answer WHOLE — hits + the desktop's {total, hasMore}. */
+    data class SearchPage(
+        val hits: List<com.zcode.android.features.tasks.port.TaskSearchHit> = emptyList(),
+        val total: Int = 0,
+        val hasMore: Boolean = false,
+    )
+
+    private val searchPage = kotlinx.coroutines.flow.MutableStateFlow(SearchPage())
+    private val searchLimit = kotlinx.coroutines.flow.MutableStateFlow(TasksUiState.SEARCH_LIMIT)
     private val searchQuery = kotlinx.coroutines.flow.MutableStateFlow("")
     private val actionNotice = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     // ---- Phase 5A: groups + archived viewer ----
@@ -198,7 +212,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         port.observeWorkspaces(),
         creating,
         createNotice,
-        searchResults,
+        searchPage,
         searchQuery,
         actionNotice,
         port.observeSessionsIndex(),
@@ -208,7 +222,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             arr[0] as List<com.zcode.android.domain.model.WorkspaceOption>,
             arr[1] as Boolean,
             arr[2] as String?,
-            arr[3] as List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+            arr[3] as SearchPage,
             arr[4] as String,
             arr[5] as String?,
             @kotlin.Suppress("UNCHECKED_CAST") (arr[6] as Map<String, com.zcode.android.domain.model.SessionIndexEntry>),
@@ -219,7 +233,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         val workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
         val creating: Boolean,
         val notice: String?,
-        val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+        val searchPage: SearchPage,
         val searchQuery: String,
         val actionNotice: String?,
         val sessionsIndex: Map<String, com.zcode.android.domain.model.SessionIndexEntry>,
@@ -229,7 +243,9 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         val (nodes, archivedList, archivedBusy, kinds, organize, sort) = m
         val pinned = tasks.filter { it.pinned }.sortedByDescending { it.updatedAtMs }
         TasksUiState(
-            searchResults = q.searchResults,
+            searchResults = q.searchPage.hits,
+            searchTotal = q.searchPage.total,
+            searchHasMore = q.searchPage.hasMore,
             searchQuery = q.searchQuery,
             actionNotice = q.actionNotice,
             pinned = pinned,
@@ -510,16 +526,36 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         }
     }
 
+    /** The pane's initial limit (the port's desktop-parity default; F-P43-A). */
+    private fun searchAt(query: String, limit: Int) {
+        scope.launch {
+            val result = port.searchTasks(query, limit)
+            searchPage.value = TasksViewModel.SearchPage(result.hits, result.total, result.hasMore)
+            searchLimit.value = limit
+        }
+    }
+
     /** H1.1: a blank query clears; anything else is a live port search. */
     fun search(query: String) {
         searchQuery.value = query
         if (query.isBlank()) {
-            searchResults.value = emptyList()
+            searchPage.value = TasksViewModel.SearchPage()
             return
         }
-        scope.launch {
-            searchResults.value = port.searchTasks(query)
-        }
+        searchAt(query, TasksUiState.SEARCH_LIMIT)
+    }
+
+    /**
+     * F-P43-A: the show-more re-query at the RAISED limit — the desktop's expanded
+     * shape (limit: undefined = everything; the AT.B contract: total is known, so
+     * the phone fetches ALL remaining matches).
+     */
+    fun searchShowMore() {
+        val query = searchQuery.value
+        if (query.isBlank()) return
+        val page = searchPage.value
+        if (!page.hasMore) return
+        searchAt(query, maxOf(searchLimit.value, page.total))
     }
 
     fun refresh() {

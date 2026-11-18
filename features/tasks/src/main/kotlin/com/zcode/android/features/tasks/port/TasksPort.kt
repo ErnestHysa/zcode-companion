@@ -73,8 +73,16 @@ interface TasksPort {
     suspend fun renameTask(taskId: String, title: String): Boolean = false
     suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean = false
 
-    /** H1.1: the desktop's full-text task search (listTaskList; snippets included). */
-    suspend fun searchTasks(query: String): List<TaskSearchHit> = emptyList()
+    /**
+     * H1.1: the desktop's full-text task search (listTaskList; snippets included).
+     * F-P43-A (pass 43): the wire's pagination answer {items, total, hasMore} is
+     * threaded WHOLE — the desktop NEVER silently truncates (its renderer keeps all
+     * three and shows taskList.showMore); the phone's pane renders the count face +
+     * a show-more re-query (the desktop's expanded shape) instead of the bare
+     * limited list.
+     */
+    suspend fun searchTasks(query: String, limit: Int = 20): TaskSearchResult =
+        TaskSearchResult(emptyList(), 0, false)
 
     // ---------------------------------------------------------------- Phase 5A (A3.8–A3.10)
 
@@ -111,3 +119,15 @@ interface TasksPort {
 
 /** A `listTaskList` hit — the snippet is the desktop's searchable_text projection. */
 data class TaskSearchHit(val taskId: String, val title: String, val snippet: String?)
+
+/**
+ * F-P43-A: the desktop-faithful search answer — {items ≤limit, total = COUNT over
+ * the filter, hasMore = total > items.length} (zcodeTaskListTypes.ts; the AT.B
+ * contract census). [hasMore] true means matches BEYOND [hits] are unreachable
+ * through the pane until a raised-limit re-query.
+ */
+data class TaskSearchResult(
+    val hits: List<TaskSearchHit>,
+    val total: Int,
+    val hasMore: Boolean,
+)

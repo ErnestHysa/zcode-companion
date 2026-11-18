@@ -28,6 +28,10 @@
     <!-- Phase 4D (L6.3+J4 / H1.1): task lifecycle + search — the desktop's confirm copy -->
     <string name="tasks_search_hint">Search tasks</string>
     <string name="tasks_search_empty">No tasks match.</string>
+    <!-- F-P43-A: the search pane states the window honestly (the desktop never
+         silently truncates — taskList.showMore parity). -->
+    <string name="tasks_search_count">Showing %1$d of %2$d matches</string>
+    <string name="tasks_search_show_more">Show all %1$d matches</string>
     <string name="task_delete_title">Delete task?</string>
     <string name="task_actions_desc">Task actions</string>
     <string name="task_delete_body">Delete \"%1$s\"? All records for this task cannot be recovered.</string>

@@ -41,7 +41,8 @@ class Pass0Phase3MoveCopyTest {
         override fun repairPairing() {}
         override fun observeWorkspaces() = MutableStateFlow(emptyList<com.zcode.android.domain.model.WorkspaceOption>())
         override suspend fun createTask(workspaceKey: String, firstText: String, provider: String?, model: String?) = ok
-        override suspend fun searchTasks(query: String): List<TaskSearchHit> = emptyList()
+        override suspend fun searchTasks(query: String, limit: Int): com.zcode.android.features.tasks.port.TaskSearchResult =
+            com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
         override suspend fun moveTaskToGroup(taskId: String, groupId: String?): Boolean = ok
         override suspend fun listGroupedView(): List<com.zcode.android.domain.model.GroupedTaskNode>? = null
     }

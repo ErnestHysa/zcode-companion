@@ -136,17 +136,23 @@ class DefaultTasksPort(
         }
     }
 
-    override suspend fun searchTasks(query: String): List<com.zcode.android.features.tasks.port.TaskSearchHit> {
-        val target = hub.activeWorkspaceTarget() ?: return emptyList()
-        val ws = target.first ?: return emptyList()
+    override suspend fun searchTasks(query: String, limit: Int): com.zcode.android.features.tasks.port.TaskSearchResult {
+        val target = hub.activeWorkspaceTarget()
+            ?: return com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
+        val ws = target.first
+            ?: return com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
         return try {
-            hub.taskService().searchTasks(ws, target.second, query)
-                .items.map { com.zcode.android.features.tasks.port.TaskSearchHit(it.taskId, it.title, it.snippets.firstOrNull()) }
+            val result = hub.taskService().searchTasks(ws, target.second, query, limit)
+            com.zcode.android.features.tasks.port.TaskSearchResult(
+                hits = result.items.map { com.zcode.android.features.tasks.port.TaskSearchHit(it.taskId, it.title, it.snippets.firstOrNull()) },
+                total = result.total,
+                hasMore = result.hasMore,
+            )
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             hub.log.warn("tasksport.search", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
-            emptyList()
+            com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
         }
     }
 

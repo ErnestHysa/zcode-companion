@@ -47,7 +47,10 @@ class TaskLifecycleVmTest {
         override suspend fun deleteTask(taskId: String): Boolean { calls += "delete:$taskId"; return outcome }
         override suspend fun renameTask(taskId: String, title: String): Boolean { calls += "rename:$taskId:$title"; return outcome }
         override suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean { calls += "archive:$taskId:$archived"; return outcome }
-        override suspend fun searchTasks(query: String): List<TaskSearchHit> { calls += "search:$query"; return hits }
+        override suspend fun searchTasks(query: String, limit: Int): com.zcode.android.features.tasks.port.TaskSearchResult {
+            calls += "search:$query"
+            return com.zcode.android.features.tasks.port.TaskSearchResult(hits, hits.size, false)
+        }
     }
 
     @Test

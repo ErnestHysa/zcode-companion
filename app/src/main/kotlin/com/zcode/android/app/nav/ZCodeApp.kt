@@ -740,6 +740,7 @@ private fun TasksRoute(
         onRenameTask = vm::renameTask,
         onSetTaskArchived = vm::setTaskArchived,
         onSearch = vm::search,
+        onSearchShowMore = vm::searchShowMore,
         onConsumeActionNotice = vm::consumeActionNotice,
         collapseStore = collapseStore,
         // G41 (vc51): the workspace manager over RECEIVED workspaces (persisted).

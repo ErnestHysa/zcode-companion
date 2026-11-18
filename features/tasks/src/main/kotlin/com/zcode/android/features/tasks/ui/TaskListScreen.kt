@@ -149,6 +149,8 @@ fun TaskListScreen(
     onRenameTask: (taskId: String, title: String) -> Unit = { _, _ -> },
     onSetTaskArchived: (taskId: String, archived: Boolean) -> Unit = { _, _ -> },
     onSearch: (query: String) -> Unit = {},
+    /** F-P43-A: the show-more re-query at the raised limit (the expanded shape). */
+    onSearchShowMore: () -> Unit = {},
     // ---- Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer ----
     onSetTaskPinned: (taskId: String, pinned: Boolean) -> Unit = { _, _ -> },
     onSetTaskUnread: (task: Task, unread: Boolean) -> Unit = { _, _ -> },
@@ -416,6 +418,17 @@ fun TaskListScreen(
                             .verticalScroll(rememberScrollState())
                             .testTag("tasks_search_results"),
                     ) {
+                        // F-P43-A: the count face — the desktop NEVER silently truncates
+                        // (useGlobalTaskList keeps {items,total,hasMore} and renders
+                        // taskList.showMore); the phone states the window honestly.
+                        if (state.searchHasMore) {
+                            Text(
+                                stringResource(R.string.tasks_search_count, state.searchResults.size, state.searchTotal),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).testTag("tasks_search_count"),
+                            )
+                        }
                         state.searchResults.forEach { hit ->
                             Row(
                                 Modifier
@@ -444,6 +457,22 @@ fun TaskListScreen(
                                 }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        }
+                        // F-P43-A: the show-more affordance — the raised-limit re-query
+                        // (the desktop's expanded shape: the remainder becomes reachable).
+                        if (state.searchHasMore) {
+                            androidx.compose.material3.ListItem(
+                                headlineContent = {
+                                    Text(
+                                        stringResource(R.string.tasks_search_show_more, state.searchTotal),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                },
+                                modifier = Modifier
+                                    .clickable(role = Role.Button, onClick = onSearchShowMore)
+                                    .testTag("tasks_search_show_more"),
+                            )
                         }
                     }
                 }

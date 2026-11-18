@@ -148,7 +148,8 @@ class Pass0Phase3CreateGroupAndMoveVmTest {
         override fun repairPairing() {}
         override fun observeWorkspaces() = kotlinx.coroutines.flow.MutableStateFlow(emptyList<com.zcode.android.domain.model.WorkspaceOption>())
         override suspend fun createTask(workspaceKey: String, firstText: String, provider: String?, model: String?) = true
-        override suspend fun searchTasks(query: String): List<com.zcode.android.features.tasks.port.TaskSearchHit> = emptyList()
+        override suspend fun searchTasks(query: String, limit: Int): com.zcode.android.features.tasks.port.TaskSearchResult =
+            com.zcode.android.features.tasks.port.TaskSearchResult(emptyList(), 0, false)
         override suspend fun createTaskGroup(title: String, color: TaskGroupColor): TaskGroupInfo? {
             calls += "create:$title"
             return createOutcome
