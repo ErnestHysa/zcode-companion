@@ -67,17 +67,16 @@ class Pass0Phase3ColdOpenGroupsTest {
             }
         }
         rule.waitForIdle()
-        // Pre-connect: the old one-shot Unit effect fired a fetch into a connection
-        // that could not serve it (the wasted call; post-fix it waits for CONNECTED).
-        val preConnectFetches = groupFetches
-        // The connect lands: the groups fetch MUST re-fire.
+        // Pre-connect: NOTHING fires (the old one-shot Unit effect wasted a fetch
+        // into a connection that could not serve it; the fix waits for CONNECTED).
+        assertEquals(0, groupFetches)
+        // The connect lands: the groups fetch MUST fire.
         phase = ConnectionPhase.CONNECTED
         rule.waitForIdle()
         assertTrue(
-            "the CONNECTED transition must re-fire the groups fetch (pre=$preConnectFetches, post=$groupFetches)",
-            groupFetches > preConnectFetches,
+            "the CONNECTED transition must fire the groups fetch",
+            groupFetches >= 1,
         )
-        assertEquals(1, preConnectFetches) // the pre-fix shape: exactly the one wasted call
     }
 
     @Test

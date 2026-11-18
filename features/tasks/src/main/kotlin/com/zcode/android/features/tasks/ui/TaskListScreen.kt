@@ -192,7 +192,15 @@ fun TaskListScreen(
     var groupEditor by remember { androidx.compose.runtime.mutableStateOf<GroupEditorTarget?>(null) }
     var confirmDeleteArchived by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskMeta?>(null) }
     var confirmDeleteGroup by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskGroupInfo?>(null) }
-    LaunchedEffect(Unit) { onLoadGroups() }
+    // F-P38-B: the one-shot load raced the transport connect — the guarded null was
+    // swallowed pre-connect (TasksViewModel `?: emptyList()`) and nothing re-triggered,
+    // so the home rendered ZERO custom-group sections for the whole session (the
+    // seeded group invisible; the intermittency receipted both ways in pass 39). The
+    // fetch fires on the CONNECTED transition (and on a warm CONNECTED open — the key
+    // starts true; pre-connect it waits for the connection instead of wasting a call).
+    LaunchedEffect(state.phase == ConnectionPhase.CONNECTED) {
+        if (state.phase == ConnectionPhase.CONNECTED) onLoadGroups()
+    }
     // Phase 4D (L6.3+J4): the lifecycle dialog anchors.
     var confirmDelete by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
     var confirmArchive by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
