@@ -210,6 +210,9 @@
     <string name="row_subagent">Subagent · %1$s</string>
     <string name="row_hook">Hook · %1$s</string>
     <string name="queue_paused_suffix">" · paused"</string>
+    <!-- F-P8-D: the queue strip's two-way header disclosure toggle. -->
+    <string name="queue_expand_a11y">Expand queued items</string>
+    <string name="queue_collapse_a11y">Collapse queued items</string>
     <string name="pending_sending">Sending…</string>
     <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
     <string name="recovery_banner_one">A message from the offline window may not have been delivered.</string>

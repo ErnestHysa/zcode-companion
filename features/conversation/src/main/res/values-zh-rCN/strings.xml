@@ -195,6 +195,8 @@
     <string name="row_subagent">子代理 · %1$s</string>
     <string name="row_hook">钩子 · %1$s</string>
     <string name="queue_paused_suffix">" · 已暂停"</string>
+    <string name="queue_expand_a11y">展开排队项</string>
+    <string name="queue_collapse_a11y">收起排队项</string>
     <string name="pending_sending">发送中…</string>
     <string name="pending_sent_unknown">发送状态不确定 — 连接已断开（不会重复发送）</string>
     <string name="pending_not_sent">未发送</string>

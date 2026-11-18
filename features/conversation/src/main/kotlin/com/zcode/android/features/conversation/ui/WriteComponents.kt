@@ -689,6 +689,16 @@ fun QueueStrip(
 ) {
     if (queue.items.isEmpty()) return
     var editing by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // F-P8-D (pass-0 Phase 2; stamps ×4, pass 18 s08/s09): the strip rendered ALL
+    // items always-expanded — no collapsed state existed (the desktop's
+    // ConversationQueuePanel HAS a collapse), several queued items consumed the
+    // window above the timeline (the F-P6-B geometry) and the `Queued (N) · paused`
+    // header clipped under the strip band above it. The header is a TWO-WAY
+    // disclosure toggle, expanded by default (the pre-F-P8-D behavior preserved;
+    // rememberSaveable keeps the user's choice across recompositions).
+    var collapsed by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -698,7 +708,19 @@ fun QueueStrip(
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             val pausedSuffix = stringResource(R.string.queue_paused_suffix)
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            val expandLabel = stringResource(R.string.queue_expand_a11y)
+            val collapseLabel = stringResource(R.string.queue_collapse_a11y)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // F-P8-D: the disclosure tap target (the Auto-send toggleable INSIDE
+                    // it consumes its own taps when expanded; everything else toggles).
+                    .clickable { collapsed = !collapsed }
+                    .heightIn(min = 32.dp)
+                    .testTag("queue_strip_toggle")
+                    .semantics { contentDescription = if (collapsed) expandLabel else collapseLabel },
+            ) {
                 Text(
                     text = buildString {
                         append(stringResource(R.string.queue_label, queue.items.size))
@@ -709,6 +731,16 @@ fun QueueStrip(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                if (collapsed) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("queue_strip_chevron"),
+                    )
+                }
+            }
+            if (!collapsed) {
                 // I1: the desktop's auto-drain toggle (setAutoDrain) — the wire echo (`autoDrain`) is the truth.
                 // N-BC-1 (vc52 Phase 9): the label + switch share ONE toggleable row —
                 // the switch had no label association (TalkBack read nothing).
@@ -735,66 +767,66 @@ fun QueueStrip(
                         )
                     }
                 }
-            }
-            // I2.6: follow-up steering — Queue (hold follow-ups) vs Guide (steer the running turn).
-            if (onSetFollowupMode != null && followupMode != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 2.dp)) {
-                    for (mode in listOf("queue", "guide")) {
-                        androidx.compose.material3.FilterChip(
-                            selected = followupMode == mode,
-                            onClick = { if (followupMode != mode) onSetFollowupMode(mode) },
-                            enabled = !busy,
-                            label = { Text(stringResource(if (mode == "queue") R.string.queue_followup_queue else R.string.queue_followup_guide), style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.testTag("queue_followup_$mode"),
-                        )
+                // I2.6: follow-up steering — Queue (hold follow-ups) vs Guide (steer the running turn).
+                if (onSetFollowupMode != null && followupMode != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 2.dp)) {
+                        for (mode in listOf("queue", "guide")) {
+                            androidx.compose.material3.FilterChip(
+                                selected = followupMode == mode,
+                                onClick = { if (followupMode != mode) onSetFollowupMode(mode) },
+                                enabled = !busy,
+                                label = { Text(stringResource(if (mode == "queue") R.string.queue_followup_queue else R.string.queue_followup_guide), style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.testTag("queue_followup_$mode"),
+                            )
+                        }
                     }
                 }
-            }
-            queue.items.forEachIndexed { index, item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    // I1: reorder — up/down produce the exact `reorderQueueItem` a drag-drop would.
-                    onMove?.let { move ->
-                        androidx.compose.material3.IconButton(
-                            onClick = { move(item.queueItemId, -1) },
-                            enabled = !busy && index > 0,
-                            // N-BC-3: the reorder buttons were 32dp — under the 48dp width floor.
-                            modifier = Modifier.size(48.dp).testTag("queue_move_up_${item.queueItemId}"),
-                        ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.queue_move_up), modifier = Modifier.size(18.dp)) }
-                        androidx.compose.material3.IconButton(
-                            onClick = { move(item.queueItemId, +1) },
-                            enabled = !busy && index < queue.items.lastIndex,
-                            modifier = Modifier.size(48.dp).testTag("queue_move_down_${item.queueItemId}"),
-                        ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.queue_move_down), modifier = Modifier.size(18.dp)) }
-                    }
-                    Text(
-                        text = item.text.take(80),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("queue_item_${item.queueItemId}"),
-                    )
-                    TextButton(
-                        onClick = { onSendNow(item.queueItemId) },
-                        enabled = !busy,
-                        modifier = Modifier.testTag("queue_send_now_${item.queueItemId}"),
-                    ) { Text(stringResource(R.string.queue_send_now)) }
-                    TextButton(
-                        onClick = { editing = item.queueItemId to item.text },
-                        enabled = !busy,
-                        modifier = Modifier.testTag("queue_edit_${item.queueItemId}"),
-                    ) { Text(stringResource(R.string.queue_edit)) }
-                    // G4 (vc51): the queue row's Delete — ConversationQueuePanel.tsx:33-38 wires
-                    // onDeleteItem to the deleteQueueItem command; the phone's other four verbs
-                    // went live at pass 11 and delete stayed modeled-never-sent.
-                    onDelete?.let { remove ->
+                queue.items.forEachIndexed { index, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        // I1: reorder — up/down produce the exact `reorderQueueItem` a drag-drop would.
+                        onMove?.let { move ->
+                            androidx.compose.material3.IconButton(
+                                onClick = { move(item.queueItemId, -1) },
+                                enabled = !busy && index > 0,
+                                // N-BC-3: the reorder buttons were 32dp — under the 48dp width floor.
+                                modifier = Modifier.size(48.dp).testTag("queue_move_up_${item.queueItemId}"),
+                            ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.queue_move_up), modifier = Modifier.size(18.dp)) }
+                            androidx.compose.material3.IconButton(
+                                onClick = { move(item.queueItemId, +1) },
+                                enabled = !busy && index < queue.items.lastIndex,
+                                modifier = Modifier.size(48.dp).testTag("queue_move_down_${item.queueItemId}"),
+                            ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.queue_move_down), modifier = Modifier.size(18.dp)) }
+                        }
+                        Text(
+                            text = item.text.take(80),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("queue_item_${item.queueItemId}"),
+                        )
                         TextButton(
-                            onClick = { remove(item.queueItemId) },
+                            onClick = { onSendNow(item.queueItemId) },
                             enabled = !busy,
-                            modifier = Modifier.testTag("queue_delete_${item.queueItemId}"),
-                        ) { Text(stringResource(R.string.queue_delete)) }
+                            modifier = Modifier.testTag("queue_send_now_${item.queueItemId}"),
+                        ) { Text(stringResource(R.string.queue_send_now)) }
+                        TextButton(
+                            onClick = { editing = item.queueItemId to item.text },
+                            enabled = !busy,
+                            modifier = Modifier.testTag("queue_edit_${item.queueItemId}"),
+                        ) { Text(stringResource(R.string.queue_edit)) }
+                        // G4 (vc51): the queue row's Delete — ConversationQueuePanel.tsx:33-38 wires
+                        // onDeleteItem to the deleteQueueItem command; the phone's other four verbs
+                        // went live at pass 11 and delete stayed modeled-never-sent.
+                        onDelete?.let { remove ->
+                            TextButton(
+                                onClick = { remove(item.queueItemId) },
+                                enabled = !busy,
+                                modifier = Modifier.testTag("queue_delete_${item.queueItemId}"),
+                            ) { Text(stringResource(R.string.queue_delete)) }
+                        }
                     }
                 }
             }
