@@ -346,7 +346,10 @@ fun TaskListScreen(
                                 text = { Text(stringResource(R.string.tasks_collapse_all)) },
                                 onClick = {
                                     moreOpen = false
-                                    collapse.collapseAll(state.groups.map { it.workspaceKey })
+                                    // N-BW-1: BOTH namespaces — organize is view-local and the
+                                    // restart lands in WORKSPACE (by design), so the timeline
+                                    // sentinel's persisted set matched nothing after relaunch.
+                                    collapse.collapseAll(collapseAllKeys(state.groups, workspaces))
                                 },
                                 modifier = Modifier.testTag("tasks_menu_collapse_all"),
                             )
@@ -354,7 +357,7 @@ fun TaskListScreen(
                                 text = { Text(stringResource(R.string.tasks_expand_all)) },
                                 onClick = {
                                     moreOpen = false
-                                    collapse.expandAll(state.groups.map { it.workspaceKey })
+                                    collapse.expandAll(collapseAllKeys(state.groups, workspaces))
                                 },
                                 modifier = Modifier.testTag("tasks_menu_expand_all"),
                             )
@@ -372,6 +375,27 @@ fun TaskListScreen(
         ) {
             notificationsBanner?.let { banner ->
                 androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) { banner() }
+            }
+            // N-BU-1 (pass 38/39): the one-shot notices live INSIDE the inset-padded
+            // body — the bare siblings drew at WINDOW level (y≈25, under the system
+            // clock); here the Scaffold's inner padding (top bar + status bar) owns
+            // the top inset for both notice classes (lifecycle/refusal + create).
+            state.actionNotice?.let { notice ->
+                Text(
+                    notice,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("tasks_action_notice"),
+                )
+            }
+            createNotice?.let { notice ->
+                AttentionStrip(
+                    title = notice,
+                    tone = if (notice == createdNotice) StatusTone.INFO else StatusTone.ERROR,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("tasks_create_notice"),
+                )
             }
             // ---- Phase 4D (H1.1) + GAP-A6/A7 (vc51): the search field lives INSIDE
             // the inset-padded body (the old bare siblings drew at window level — under
@@ -653,15 +677,6 @@ fun TaskListScreen(
                     onConsumeCreateNotice()
                 }
             }
-            createNotice?.let { notice ->
-                AttentionStrip(
-                    title = notice,
-                    tone = if (notice == createdNotice) StatusTone.INFO else StatusTone.ERROR,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .testTag("tasks_create_notice"),
-                )
-            }
         }
     }
 
@@ -913,15 +928,6 @@ fun TaskListScreen(
                     Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                 }
             },
-        )
-    }
-    // The lifecycle one-shot notice (auto-clears like createNotice).
-    state.actionNotice?.let { notice ->
-        Text(
-            notice,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("tasks_action_notice"),
         )
     }
     LaunchedEffect(createNotice, state.actionNotice) {
@@ -1364,9 +1370,36 @@ private fun ReadyBody(
                     }
                 }
             }
+            // N-BV-1: ZERO-member groups render ONCE with the full header affordance —
+            // the pre-fix skip (`?: return@forEach`) left the ONLY Edit/Delete entry
+            // point unreachable, so an orphan group stayed in every move sheet forever
+            // (receipted live: the created "shgrp" rendered NO header).
+            state.taskGroups
+                .filter { g -> state.groupMembership.values.none { it == g.id } }
+                .forEach { g ->
+                    item(key = "group-empty-${g.id}") {
+                        GroupHeader(
+                            group = g,
+                            count = 0,
+                            modifier = Modifier.animateItem(),
+                            onEdit = onEditGroup?.let { cb -> { cb(g) } },
+                        )
+                    }
+                }
         }
     }
 }
+
+/**
+ * N-BW-1: collapse/expand-all covers BOTH key namespaces — the current view's
+ * group keys (including the TIMELINE sentinel, whose persisted set matched
+ * NOTHING after the by-design workspace-organize restart) AND the received
+ * workspace keys (the keys the restart's sections actually render under).
+ */
+internal fun collapseAllKeys(
+    groups: List<com.zcode.android.features.tasks.TaskGroup>,
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
+): List<String> = (groups.map { it.workspaceKey } + workspaces.map { it.key }).distinct()
 
 /** A3.8: the pinned section label (count badge like the workspace header). */
 @Composable
