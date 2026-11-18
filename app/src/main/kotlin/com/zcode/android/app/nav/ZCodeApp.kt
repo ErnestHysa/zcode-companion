@@ -675,6 +675,12 @@ private fun TasksRoute(
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
     val startScope = androidx.compose.runtime.rememberCoroutineScope()
+    // F-P40-B: the three workspace-manager pref writes run on the PROCESS-LIFETIME
+    // stores scope — never the composition scope (a write in flight dies silently
+    // when the composition leaves; WorkspacePreferenceWriter carries the receipts).
+    val workspacePrefs = androidx.compose.runtime.remember {
+        WorkspacePreferenceWriter(container.stores.preferencesRepository, container.stores.appScope)
+    }
     val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
     val notificationsEnabled = com.zcode.android.app.notifications.rememberNotificationsEnabled()
     val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
@@ -738,21 +744,9 @@ private fun TasksRoute(
         collapseStore = collapseStore,
         // G41 (vc51): the workspace manager over RECEIVED workspaces (persisted).
         selectedWorkspaceKeyExternal = prefs.selectedWorkspaceKey,
-        onWorkspaceSelected = { key ->
-            startScope.launch { container.stores.preferencesRepository.update { p -> p.copy(selectedWorkspaceKey = key) } }
-        },
-        onWorkspacesReordered = { keys ->
-            startScope.launch { container.stores.preferencesRepository.update { p -> p.copy(workspaceOrder = keys) } }
-        },
-        onWorkspaceRenamed = { key, alias ->
-            startScope.launch {
-                container.stores.preferencesRepository.update { p ->
-                    val next = p.workspaceAliases.toMutableMap()
-                    if (alias == null) next.remove(key) else next[key] = alias
-                    p.copy(workspaceAliases = next)
-                }
-            }
-        },
+        onWorkspaceSelected = workspacePrefs::select,
+        onWorkspacesReordered = workspacePrefs::reorder,
+        onWorkspaceRenamed = workspacePrefs::rename,
         workspaceOrder = prefs.workspaceOrder,
         workspaceAliases = prefs.workspaceAliases,
         // F-34-E: the persistent off-state row while Android blocks the app's notifications.

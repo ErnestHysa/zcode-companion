@@ -3,7 +3,6 @@ package com.zcode.android.app.nav
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -132,15 +131,23 @@ class Pass0Phase3WorkspaceRenameTest {
     )
 
     /**
-     * TasksRoute's workspace-manager wiring VERBATIM (ZCodeApp.kt:673-757): the prefs
-     * mirror observed live, the callbacks launched on `rememberCoroutineScope()` — the
-     * composition-owned scope the pre-fix code used. Every body is a copy of the
-     * production lambda (the pin anchors ZCodeApp.kt:741-755).
+     * The production wiring (post-fix): TasksRoute's callbacks route through
+     * [WorkspacePreferenceWriter] on the process-lifetime stores scope (the pin's
+     * [processScope] is the appScope stand-in — it outlives the composition). The
+     * pre-fix RED demonstration ran this same harness with the callbacks on the
+     * composition's `rememberCoroutineScope()`: the gated writes were cancelled at
+     * the disposal and the alias never landed (receipted in the pre-fix run).
      */
+    private val processScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default,
+    )
+
     @androidx.compose.runtime.Composable
     private fun WorkspaceHost(repository: PreferencesRepository) {
         val prefs by repository.observe().collectAsState(AppPreferences())
-        val startScope = rememberCoroutineScope()
+        val writer = androidx.compose.runtime.remember(repository) {
+            WorkspacePreferenceWriter(repository, processScope)
+        }
         TaskListScreen(
             state = TasksUiState(
                 phase = ConnectionPhase.CONNECTED,
@@ -153,21 +160,9 @@ class Pass0Phase3WorkspaceRenameTest {
             onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {},
             workspaces = workspaces,
             selectedWorkspaceKeyExternal = prefs.selectedWorkspaceKey,
-            onWorkspaceSelected = { key ->
-                startScope.launch { repository.update { p -> p.copy(selectedWorkspaceKey = key) } }
-            },
-            onWorkspacesReordered = { keys ->
-                startScope.launch { repository.update { p -> p.copy(workspaceOrder = keys) } }
-            },
-            onWorkspaceRenamed = { key, alias ->
-                startScope.launch {
-                    repository.update { p ->
-                        val next = p.workspaceAliases.toMutableMap()
-                        if (alias == null) next.remove(key) else next[key] = alias
-                        p.copy(workspaceAliases = next)
-                    }
-                }
-            },
+            onWorkspaceSelected = writer::select,
+            onWorkspacesReordered = writer::reorder,
+            onWorkspaceRenamed = writer::rename,
             workspaceOrder = prefs.workspaceOrder,
             workspaceAliases = prefs.workspaceAliases,
         )
@@ -280,8 +275,9 @@ class Pass0Phase3WorkspaceRenameTest {
         hostVisible.value = false
         rule.waitForIdle()
         gate.complete(Unit)
+        // The FILE truth (the memory view can precede the flush).
         rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().selectedWorkspaceKey == "/synthetic/ws-one" }
+            runCatching { filePrefs().selectedWorkspaceKey == "/synthetic/ws-one" }.getOrDefault(false)
         }
         assertEquals("/synthetic/ws-one", filePrefs().selectedWorkspaceKey)
     }
