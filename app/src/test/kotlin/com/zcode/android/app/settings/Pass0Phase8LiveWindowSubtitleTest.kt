@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.app.AppContainer
 import com.zcode.android.core.notifications.LiveConnectionService
@@ -69,9 +70,13 @@ class Pass0Phase8LiveWindowSubtitleTest {
             }
         }
         rule.waitForIdle()
+        // The row sits deep in the Settings column — scroll it into view first.
+        rule.onNodeWithTag("settings_live_window").performScrollTo()
+        rule.waitForIdle()
         rule.onNodeWithTag("settings_live_window").performClick()
         rule.waitForIdle()
-        // The picker dialog: choose 60 minutes.
+        // The picker dialog is up, then choose 60 minutes.
+        rule.onNodeWithText("Live-connection window").assertExists()
         rule.onNodeWithText("60 minutes").performClick()
         rule.waitForIdle()
         // THE receipted face: the subtitle must recompose in-session (no re-entry).
