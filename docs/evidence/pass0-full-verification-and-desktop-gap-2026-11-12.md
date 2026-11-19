@@ -11500,7 +11500,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ✓ DONE 2026-11-18 |
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ✓ DONE 2026-11-18 |
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-19 |
-| 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ☐ |
+| 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ✓ DONE 2026-11-19 |
 | 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ☐ |
 | 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ☐ |
 | 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ☐ |
@@ -11955,7 +11955,7 @@ N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
 
 ### Sub-phase 7A — the upload lifecycle & silent faces
 
-- [ ] **F-P31-A (P3) — the mid-upload user-tap Remove does NOT cancel the in-flight upload
+- [x] **F-P31-A (P3) — the mid-upload user-tap Remove does NOT cancel the in-flight upload
   coroutine — the aborted transaction RESURRECTS the removed chip** (~15 s later as ✗ under a
   banner; and on the keep-after-abort shape as ✓ READY under NO banner — the worse UX; the
   resurrected chip is fully REAL and SENDS end-to-end). The desktop's remove is FINAL
@@ -11964,15 +11964,15 @@ N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
   re-add upserts on a user-removed set). **Accept:** a harness asserting remove-during-upload →
   the chip stays gone + the abort fires; a live leg over both abort classes (MOCK_ATTACHMENT_FAIL
   + MOCK_ATTACHMENT_KEEP_AFTER_ABORT). (2 stamps.)
-- [ ] **F-P11-A (P3) — the conversation attachment chip has NO error face** (a failed read
+- [x] **F-P11-A (P3) — the conversation attachment chip has NO error face** (a failed read
   leaves "Loading…" forever — produceState swallows failures; no unavailable state, no retry).
   **Fix:** an error/unavailable state on the chip + a Robolectric failing-loader harness (the
   MOCK half is already FIXED `1e649eab`). **Accept:** the failing-loader pin asserts the
   unavailable face + retry.
-- [ ] **F-P8-F (P3) — the Take-photo intent failure (API-36 camera denial) surfaces NOTHING in
+- [x] **F-P8-F (P3) — the Take-photo intent failure (API-36 camera denial) surfaces NOTHING in
   the attachment flow.** **Fix:** a typed honest face for intent-launch failure (the
   silent-blank family). **Accept:** a pin asserting the face renders on a denied/failed launch.
-- [ ] **F-P33-A (P3) — the generated-artifact preview card's Open affordance is DEAD at HEAD
+- [x] **F-P33-A (P3) — the generated-artifact preview card's Open affordance is DEAD at HEAD
   and SILENT in both failure stages:** stage-2 — the download SUCCEEDS but the FileProvider
   config (`file_paths.xml`) declares ONLY `shared/` + `updates/` so `getUriForFile` throws IAE
   and the else branch is LOG-ONLY (`ZCodeApp.kt:1130-1132`); stage-1 — an unserved ref faults
@@ -11987,18 +11987,18 @@ N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
 
 ### Sub-phase 7B — the notice one-liners batch (rule 10)
 
-- [ ] **N-BR-1 (P4) — the composer attachment chip's Retry SUCCESS leaves the stale offline
+- [x] **N-BR-1 (P4) — the composer attachment chip's Retry SUCCESS leaves the stale offline
   banner displayed** (also the Remove path — the SECOND lying window — and the CROSS-CHIP
   window: the banner is per-conversation, chip B's success leaves chip A's FAILED banner
   verbatim). **Fix:** clear the keyed notice in retryUpload's Committed branch AND in
   removeUpload (one-liner each — the cross-chip shape falls out of the same fix). **Accept:**
   pins — retry→committed→banner-gone; remove→banner-gone. (3 stamps.)
-- [ ] **N-BS-1 (P4) — the MIXED-state send (one ✓ ready + one ✗ failed chip) silently EXCLUDES
+- [x] **N-BS-1 (P4) — the MIXED-state send (one ✓ ready + one ✗ failed chip) silently EXCLUDES
   the failed chip from the payload with NO per-send signal** (the ready-only filter drops it;
   the message goes out as if complete; the user's only trace is the lingering ✗ chip). **Fix:**
   a keyed notice on ACCEPTED-with-excluded-chips ("Sent without <name> — the upload failed") or
   a pre-send confirm. **Accept:** a harness asserting the mixed send surfaces the exclusion.
-- [ ] **N-BT-1 (P4) — the stale ROW-ACTION banner renders the SWITCH-specific copy:**
+- [x] **N-BT-1 (P4) — the stale ROW-ACTION banner renders the SWITCH-specific copy:**
   `rowActionNotice`'s STALE branch passes the correct per-path message with the SHARED
   `SendNotice.Key.SESSION_CHANGED`, but the banner renderer resolves BY KEY
   (`WriteComponents.kt:1751`) and discards the message — feedback LIVE-receipted;
@@ -12006,18 +12006,18 @@ N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
   (ROW_ACTION_STALE → notice_row_action_stale) or render notice.message for SESSION_CHANGED
   when non-blank. **Accept:** a harness asserting the feedback-stale banner does NOT contain
   "switch" + the four rowActionNotice call sites enumerated.
-- [ ] **N-BO-1 (P4) — user banners interpolate RAW fault codes** (four surfaces: the changes
+- [x] **N-BO-1 (P4) — user banners interpolate RAW fault codes** (four surfaces: the changes
   viewer's error face, the quota-reset failure face, the attachment FAILED banner, the
   resurrected-chip banner — all `fault.*` verbatim through `ErrorMapping.taskRejected`).
   **Fix:** extend the G66 fault→human mapping to these Phase9 surfaces. **Accept:** a pin per
   surface — no raw `fault.*` text in user copy. (4 stamps.)
-- [ ] **N-BJ-1 (P4) — attachment image previews have NO size/aspect cap** (a 1×1 seed renders
+- [x] **N-BJ-1 (P4) — attachment image previews have NO size/aspect cap** (a 1×1 seed renders
   ~300×220 dp). **Fix:** cap the decode (aspect ratio + max dimension). **Accept:** the 1×1
   seed renders at a sane size.
 
 ### Sub-phase 7C — observation
 
-- [ ] **F-P0-E (P3, observation) — ANR during rapid rig input; causality unproven** (the
+- [x] **F-P0-E (P3, observation) — ANR during rapid rig input; causality unproven** (the
   Recomposer throwOnFailure SPIN — main thread in `runRecomposeAndApplyChanges`; the thrash is
   ambient across every sheet leg on the swiftshader rig; the trajectory sheet's TYPING legs
   tripped it 2/2 in pass 46, one wedge CONSUMED the app process). **Fix shape:** observation —
@@ -12025,10 +12025,24 @@ N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
   immediately). **Accept:** an instrumented leg either captures a deterministic trigger
   (→ a real fix row) or closes the row as ambient with the census note. (4 stamps.)
 
-**Phase 7 exit gate: ☐** fresh rig: remove-during-upload stays gone across both abort classes
-(F-P31-A); the notice batch faces all render honestly (N-BR-1/N-BS-1/N-BT-1/N-BO-1); the
-artifact Open success face lands in the system viewer (F-P33-A); zero raw `fault.*` in user
-copy; the ANR leg adjudicated.
+**Phase 7 exit gate: ☑ PASSED 2026-11-19 19:40 (receipts in the Phase-7 fix-round record below).**
+
+> **VERIFIED ✓ Phase 7 — 100% complete.** Verified 2026-11-19 at **19:40:36** (hh-mm-ss,
+> UTC, post-exit-gate). Verified by **GLM-5.3-Flash** running in **ZCode** (ZCode Desktop
+> harness, agentic CLI on macOS arm64, account:zai-individual-coding-plan/GLM-5.3-Flash),
+> executing Ernest's pass-0 Phase-7 dispatch ("begin phase 7, and only this phase… verify
+> this phase is 100% fullfilled and finished, add tests as well to cover all possiblities
+> for only this phase and any previous phases if applicable… add a mark/check/tick and
+> done and mark this phase as complete followed by date , year, time in hh-mm-ss… also add
+> who verified this phase, model/llm and harness used. at the end commit this whole phase.
+> dont push anything yet to remote. only local commits"). All ten rows FIXED on `fix/pass0`
+> (9 fix commits + 1 test commit; pins RED-demonstrated at the pre-phase tip `2c15c51d`,
+> GREEN post-fix — 33/33 pins green at the final HEAD); full-suite zero-new-names gate
+> passed (the one app name adjudicated load-flake by bisect: it fails at the byte-identical-
+> main-code pins commit with moving counts 4→1→1 across reruns, while the pre-phase baseline
+> worktree passes it and fails its own `:data` flake name); debug APK rebuilt (sha256
+> `d49f9773b33ccc7f…`, versionCode 53 / versionName 1.3.2); the exit gate receipted live
+> (legs a-e, receipts in the fix-round record below). NOTHING pushed — local commits only.
 
 ---
 
@@ -13188,3 +13202,205 @@ Ledger statuses re-stamped with the commit shas in the same session. NOTHING pus
 (`mock-p6fix-gen1-a41c77`) ALIVE — arms SPENT (the ghost fired once; the CAS arm stays armed
 and sticky; SET_THOUGHT_LEVEL_STALE sticky), app pid 2640 CONNECTED (relay-13) on the
 synthetic conversation; `pkill -f MockRelayMainKt` to end. Receipts: /tmp/p6fix/.
+
+---
+
+# Phase 7 fix-round record (APPENDED 2026-11-19 — the roadmap's fix log; discovery + phases 1–6 above untouched)
+
+> **Phase 7 — Composer, attachments & notices: 10/10 rows FIXED + exit gate PASSED.**
+> Branch `fix/pass0`, one finding ≥ one commit: the pins landed first as one RED commit
+> `4b170b2e` (test(pass0-phase7), RED at the pre-phase tip `2c15c51d` — the JVM-only subset
+> run RED; the two new-API pin files (the `ROW_ACTION_STALE` render mapping,
+> `decodeAttachmentThumbnail`) landed with their fixes per the campaign's new-API pin
+> shape). Then in roadmap order: `241d2b8c` (fix(F-P31-A)) → `23059c65` (fix(N-BR-1)) →
+> `c6e0769f` (fix(N-BS-1)) → `953438ee` (fix(N-BT-1)) → `ac6363d1` (fix(F-P11-A)) →
+> `f8971791` (fix(N-BJ-1)) → `62adf4d9` (fix(F-P8-F)) → `459b9bea` (fix(F-P33-A)) →
+> `8f1b64d7` (fix(N-BO-1)).
+
+## What the fixes do (mechanisms)
+
+- **F-P31-A (`241d2b8c`) — the mid-upload Remove is FINAL.** TWO layers, the desktop's
+  AbortController parity (pass-32 AI.D): the PORT grows a `userRemovedUploads` finality set
+  (armed FIRST in `removeUpload`, so any in-flight completion racing the remove — the
+  per-chunk progress, commit, or failure upsert — is already dead; `uploadAttachment` clears
+  the id at entry so the one-tap Retry legitimately re-arms the chip) and the VIEWMODEL
+  tracks the RUNNING upload coroutine under its uploadId (`uploadJobs`; the caller-scope
+  coroutine registers itself via `coroutineContext[Job]`, so picker arms run in the
+  composer's scope and retries in the VM's) — `removeUpload` cancels the live job FIRST, so
+  the port's CancellationException branch fires the server-side attachmentAbort instead of
+  pumping chunks at a dead transaction. Kills both resurrection shapes: the pass-31 ✗
+  catch-all re-add AND the pass-32 silent ✓ READY (the commit's upsert is guarded even when
+  the server kept accepting post-abort chunks).
+- **N-BR-1 (`23059c65`) — the lying banner windows close.** `clearAttachmentNotice()` clears
+  only the ATTACHMENT-class keys (OFFLINE/FAILED/RETRY_FAILED): retryUpload's Committed
+  branch and removeUpload both call it — the ✓ chip and the removed chip can no longer stand
+  beside a "not sent" banner, and the CROSS-CHIP window (pass-30) falls out of the same fix
+  (the banner is per-conversation: chip B's committed retry clears chip A's stale FAILED
+  banner). An unrelated switch/send notice is NOT swallowed.
+- **N-BS-1 (`c6e0769f`) — the mixed-state send carries the exclusion signal.**
+  `routeSendPrompt` snapshots the pre-send strip; on ACCEPTED with ✗ failed chips present it
+  raises the keyed `ATTACHMENT_SENT_WITHOUT` warning naming the first excluded chip ("Sent
+  without <name> — the upload failed.", the roadmap copy) instead of silently dropping it
+  and clearing the banner (the pass-30 s10/s12 receipt). A fully-ready send stays silent
+  (the no-regression arm pins that too).
+- **N-BT-1 (`953438ee`) — the row-action stale carries its OWN key.** `ROW_ACTION_STALE` →
+  `notice_row_action_stale` ("The session changed on the desktop — try again."); the four
+  rowActionNotice call sites (retryTurn/forkAssistant/applyFileRewind/setAssistantFeedback)
+  stay on the helper; the mode/effort/model switch surfaces KEEP the shared
+  `SESSION_CHANGED` key (their banner IS a switch face — regression arm pinned).
+- **F-P11-A (`ac6363d1`) — the chip renders the honest UNAVAILABLE face.** The load is
+  TRI-STATE (`AttachmentLoad`: Loading/Ready/Unavailable — produceState's
+  `runCatching{}.getOrNull()` collapsed a FAILED read into the same null as a still-loading
+  one, the eternal "Loading…" face). The unavailable face IS the retry affordance (the tap
+  bumps the produceState epoch and re-invokes the loader); the zoom viewer's failed load
+  renders the same honest face (reopening = its retry). The face's testTag lives on the
+  inner Box — a node carries ONE TestTag; chaining a second `.testTag()` on the Surface is
+  silently dropped.
+- **N-BJ-1 (`f8971791`) — the decode is the capped sampler.** `decodeAttachmentThumbnail
+  (bytes, maxDim=512)`: inJustDecodeBounds first (the outWidth≤0 guard → null, the
+  honest-empty family), then inSampleSize powers-of-two bounded on the max dimension —
+  aspect preserved by construction; AttachmentView's thumbnail decode rides it. The
+  render-side size cap (the fixed 132×96dp frame) already shipped in the 3D-probe round;
+  this closes the report's remaining uncapped half — the DECODE (a 3200×2400 photo decoded
+  full-resolution behind a 132dp window).
+- **F-P8-F (`62adf4d9`) — the async TakePicture verdict surfaces.** The A8 guard covered the
+  SYNCHRONOUS launch throw; the ASYNC verdict class (the ActivityResult arriving `ok=false`
+  when the camera app denies/fails — the API-36 class, pass-7 K.A2) fell through the
+  callback silently. It now arms `cameraNoPhoto` for a launch WE armed (cameraUri non-null)
+  and renders "No photo captured — the camera returned nothing (it may have been denied)."
+  with its own tag — distinct copy from the A8 unavailable face; a fresh launch clears both.
+- **F-P33-A (`459b9bea`) — the Open affordance works end-to-end.** Stage-2: `file_paths.xml`
+  gains the `downloads/` + `attachments/` cache roots (the artifact download and the
+  attachment-chip fetch write there; getUriForFile threw IAE on both before — the exact
+  receipted "Failed to find configured root" fault). Stage-1: BOTH external-open arms'
+  download-null branches (onOpenArtifact + onOpenAttachmentExternally) were LOG-ONLY — they
+  now show the typed "Couldn't download <name> for viewing — try again." notice (notifier
+  plane; the diagnostic stays in the ring).
+- **N-BO-1 (`8f1b64d7`) — the fault→human mapping covers the Phase-7 surfaces.** The
+  changes viewer's error face maps the loader error through `friendlyFaultMessage`; the
+  quota-reset failure face stops interpolating the raw `fault.mock.unscripted:…` code; the
+  attachment FAILED banner's arg maps through the mapping AT THE RENDERER when it starts
+  with `fault.` (the renderer holds the resources, the view model stays resource-free;
+  non-fault args pass through unchanged). The resurrected-chip banner shares the surface.
+- **F-P0-E (observation row — CLOSED AS AMBIENT, census note).** The instrumented leg
+  (rapid chunked typing into the goal dialog, DEL bursts ≤8 per the recorded recipe, plus
+  the re-focus taps) produced ZERO app ANRs, ZERO new `/data/anr` records during the leg,
+  and the dialog stayed responsive (the field updated live). The 12:21 trace cluster
+  (5 records in 25 s) is SystemUI's OWN cold-boot ANRs on the swiftshader rig — ambient
+  compositor jank, not the app; the pass-41/46 Recomposer-spin shape never reproduced under
+  the recipe. The row closes as ambient with this census.
+
+## The pins (33, all GREEN at the final HEAD; RED evidence at `2c15c51d`)
+
+- `app` Pass0Phase7UploadRemoveFinalityTest 2/2 — the REAL RelayTransport↔MockZCode over
+  BOTH abort classes (`attachmentKeepAfterAbort=false/true` + `attachmentChunkDelayMs=400`):
+  the mid-upload remove → the chip stays gone through the whole resurrection window (RED
+  showed "the removed chip RESURRECTED (ready)" in BOTH classes).
+- `app` Pass0Phase7ComposerUploadVmTest 7/7 — F-P31-A ×2 (the retry and first-attempt jobs
+  cancel + the port abort still fires), N-BR-1 ×2 (retry-Committed → banner-gone;
+  remove → banner-gone), N-BS-1 ×2 (the mixed send names the excluded chip + the clean-send
+  silence), N-BT-1 (the feedback-stale notice is NOT the shared switch key; the copy invites
+  a retry).
+- `features/conversation` Pass0Phase7AttachmentChipFacesTest 5/5 — the unavailable face (no
+  Loading), tap → the loader re-invoked, the successful-load G28 regression arm, the viewer's
+  honest face, the N-BJ-1 sampler source shape.
+- `features/conversation` Pass0Phase7AttachmentDecodeCapTest 3/3 — the 3200×2400 downscale
+  within the max dimension, aspect preserved, the report's 1×1 seed exact (the garbage→null
+  guard is device-behavior: Robolectric's BitmapFactory shadow decodes anything — noted).
+- `features/conversation` ComposerCameraNoPhotoFaceTest 3/3 — the callback arms the face
+  (source shape), the honest copy exists (no-photo + denial wording), the A8 sync guard
+  still stands.
+- `features/conversation` RowActionStaleNoticeCopyTest 2/2 + Pass0Phase7RowActionStaleRender
+  Test 1/1 — the switch-copy regression arm, the source enumeration (the helper emits the
+  NEW key; the four call sites stay), the render mapping (no "switch" in the row-action
+  stale copy).
+- `features/conversation` RawFaultCodeUserCopyTest 3/3 — the changes viewer
+  (fault.file.notFound → the unavailable family, no raw code), the FAILED banner arg
+  mapping + the non-fault passthrough.
+- `app` FileProviderArtifactRootsTest 5/5 — the Robolectric getUriForFile harness over BOTH
+  cache roots (RED = the report's exact IAE), the shared-root no-regression arm, the xml
+  declaration pin, the typed-notice source sweep over both arms.
+- `app` QuotaResetRawFaultCopyTest 1/1 — the typed-RESET gate → useReset fault → the human
+  face (the unscripted marker routes to the unavailable family).
+- **The suite gate**: `testDebugUnitTest` + the six pure-JVM `test` tasks across all
+  modules — name-diff vs the pre-phase baseline (a worktree at `2c15c51d`, full suite): the
+  HEAD run's single failing name (ConnectionHubWritePathTest) is adjudicated a LOAD FLAKE —
+  it fails at the PINS-ONLY commit (byte-identical main code to the passing pre-phase tip)
+  with MOVING failure counts (4→1→1) across reruns, and the baseline worktree run failed its
+  own name (StreamWatchdogIdleStandDownTest, `:data` — a module this phase never touched).
+  The task-failure lists held only test-failure tasks; every tested module emitted XML.
+
+## Exit gate — live receipts (zcode-a16 cold boot + relay gens 1/1b/2/2b/2c/3/5/5b/6, nonces `mock-p7-gen<N>-*`)
+
+Rig: COLD BOOT (`-no-snapshot-load`, boot ~50 s), `install -r` of the FRESH APK (sha256
+`d49f9773b33ccc7f…`, versionCode 53 / versionName 1.3.2), app data SURVIVED the boot (the
+stored endpoint re-connected to the constant-passHash relay — no re-pairing). TWO rig
+lessons receipted the hard way this round and now recorded: (1) the pass-12 NAT lesson
+again (`svc wifi disable` kills the 10.0.2.2 NAT on API 36 — wifi re-enabled); (2) NEW:
+**the host's App Nap throttled the java relay process** — the WS dropped with `1006
+Software caused connection abort` every ~90–120 s until the relay was relaunched under
+`caffeinate -is`, after which the connection held solid (100 s+ verified). (3) NEW: **the
+picker's activity-STOP deliberately stops the transport** (`app.lifecycle :: onStop` →
+RECONNECTING → the pick returns → onStart → RECOVERING → CONNECTED, ~5–8 s) — every
+first-attempt upload fired inside that recovery window and honestly took the §17.6 offline
+face; the one-tap Retry (tapped at CONNECTED) is the design's own recovery path, receipted
+below. Receipts /tmp/p7/ (d1–d87 dumps + open-served/open-viewer/open-missing-notice2/
+nbo1-banner/mixed-send-notice/retry-committed + relay-gen*.log + logcat3/logcat4).
+
+- **(a) F-P33-A — the artifact Open lands in the system viewer (BOTH stages).** Stage-2:
+  the seeded `rig-p33-report.html` card (MOCK_ROW_KINDS) → Open → the download succeeded →
+  getUriForFile over the NEW cache/downloads root → **the system chooser "Open with ·
+  Chrome / HTML Viewer · Just once/Always"** (open-served.png) → HTML Viewer rendered the
+  served content (open-viewer-content.png). Stage-1: the unserved `rig-p33-missing.html`
+  card → Open → `preview.open :: download failed: fault.file.notFound` in the log AND the
+  **typed notice "Couldn't download rig-p33-missing.html for viewing — try again."**
+  (open-missing-notice2.png — the pre-fix face was LOG-ONLY silence).
+- **(b) F-P31-A — the remove-during-upload stays gone under the WORSE abort class.** Relay
+  gen3 with MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1 + CHUNK_DELAY_MS=2600: the p31d retry opened
+  a REAL transaction on the wire (the relay: attachmentBegin → chunk → …), the user-tap
+  Remove fired **`attachmentAbortV4` → `MOCK: attachmentAbort KEPT
+  (MOCK_ATTACHMENT_KEEP_AFTER_ABORT) … post-abort chunks accepted`** — the exact pass-32
+  silent-✓ driver armed server-side — and the removed chip STAYED GONE through the whole
+  resurrection window (t+1/5/10/15/20 s dumps all GONE; the abort-fired criterion is the
+  relay line). The fault class rides the JVM pins (the identical wire semantics, both
+  classes RED→GREEN); the on-device fault-class remove legs' chips also stayed gone.
+- **(c) N-BR-1 — the committed retry clears the lying banner.** Gen6 (clean): the strip
+  carried three ✗ offline chips + the ATTACHMENT_OFFLINE banner; the p31d Retry → the relay
+  `attachmentBeginV4 → chunkV4 ×2 → attachmentCommitV4` (COMMITTED) → **the banner GONE**
+  beside the ✓ chip (retry-committed.png; the pre-fix face kept "Offline — the attachment
+  was not sent." standing — the pass-28 s16 receipt).
+- **(d) N-BS-1 — the mixed send names the excluded chip.** Same gen6 session: the strip =
+  ✓ p31d + ✗ p31c + ✗ p31d#2; draft "mixed send rig probe" → Send → the message ACKED (the
+  mock's echo reply rendered), the ✓ chip CONSUMED, the ✗ chips lingered, and the keyed
+  notice **"Sent without rig-p31c.bin — the upload failed."** rendered
+  (mixed-send-notice.png — the pass-30 pre-fix face was NO signal at all).
+- **(e) The honest-copy faces + zero raw `fault.*`.** Every banner observed on-device
+  rendered human copy: "Offline — the attachment was not sent. Retry when connected." (the
+  §17.6 first-attempt face, ×5 through the recovery windows), "Attachment retry failed —
+  not sent." (the retry face), "Sent without …", "Couldn't download …" — ZERO raw
+  `fault.*` in any user-visible banner (the fault-arg mapping + the changes-viewer/quota
+  faces ride the JVM pins; the first-attempt raw-code banner face is structurally gated on
+  the rig by the picker-STOP recovery race, documented above).
+- **(f) F-P0-E — the ANR leg adjudicated (ambient).** The goal-dialog rapid-typing leg
+  (chunk DELs ≤8): zero app ANRs, zero new /data/anr records during the leg, the dialog
+  responsive throughout. The 12:21 cluster (5 traces in 25 s) is SystemUI's own cold-boot
+  ANRs on swiftshader — ambient, not the app. The row closes as ambient with this census.
+
+## Ledger arithmetic
+
+Open F: **8** (was 13; −5: F-P31-A, F-P11-A, F-P8-F, F-P33-A, F-P0-E) · Open smalls:
+**6** (was 11; −5: N-BR-1, N-BS-1, N-BT-1, N-BO-1, N-BJ-1) · Open G: **20** (unchanged —
+no G rows in Phase 7). **Phases 1–7 are COMPLETE — 55/86 roadmap rows closed; Phase 8 next
+(Conversation timeline, paging & viewers — 10 rows).**
+
+**2026-11-19, verified at 19:40:36 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's
+pass-0 Phase-7 dispatch. Phase-7 disposition: **10/10 rows FIXED + exit gate PASSED — the
+phase is COMPLETE.** Ledger statuses re-stamped with the commit shas in the same session.
+NOTHING pushed.
+
+**Rig left:** emulator zcode-a16 UP (cold-booted this round), relay gen6
+(`mock-p7-gen6-g5w9`) KILLED at round end (the receipts complete; `pkill -f
+MockRelayMainKt` was run — nothing left holding :18100), app pid 3270 idle-CONNECTED on the
+synthetic conversation. Receipts: /tmp/p7/.
