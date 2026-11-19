@@ -1,5 +1,7 @@
 package com.zcode.android.features.conversation
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -136,9 +138,34 @@ class Pass0Phase8PagingStripTest {
     @Test
     fun `F-P35-A - the AL-E retry-success face - clearing the fault restores the Load-earlier affordance`() {
         val rows = (1L..60L).map { assistantRow(it, "message $it") }
-        setContent(uiState(rows, error = faultError()))
-        // The retry succeeds: the VM clears the fault (Part AL.E's receipted face).
-        setContent(uiState(rows, error = null, hasMore = true))
+        var error by androidx.compose.runtime.mutableStateOf<AppError?>(faultError())
+        rule.setContent {
+            ZCodeTheme {
+                ConversationScreen(
+                    state = uiState(rows, error = error),
+                    phase = ConnectionPhase.CONNECTED,
+                    onBack = {},
+                    onLoadOlder = { _, _ -> },
+                    onDismissHistoryNotice = {},
+                    onRetryOlder = { retryCalls.add(it) },
+                    onDraftChange = {},
+                    onSend = { _, _, _ -> },
+                    onStop = {},
+                    onRetrySend = {},
+                    onDismissSendNotice = {},
+                    onAnswer = { _, _, _, _ -> },
+                    onSendQueuedNow = {},
+                    onEditQueueItem = { _, _ -> },
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("conversation_older_error_strip").assertIsDisplayed()
+        // The retry succeeds: the VM clears the fault (Part AL.E's receipted face) and
+        // the tappable affordance returns in the same pinned slot.
+        rule.runOnUiThread { error = null }
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("conversation_older_error_strip").assertCountEquals(0)
         rule.onAllNodesWithTag("conversation_load_older_strip").assertCountEquals(1)
         rule.onNodeWithTag("conversation_load_older_strip").assertIsDisplayed()
     }

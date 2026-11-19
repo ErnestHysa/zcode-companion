@@ -588,7 +588,40 @@ fun ConversationScreen(
                     // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial
                     // snapshot to a tail window — make the remaining history DISCOVERABLE
                     // and tappable (pages of PAGE_MAX_ROWS; no hardcoded total).
-                    if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
+                    // F-P35-A: the affordance's FACES live here too — the tap affordance is
+                    // tail-anchored in spirit (the user taps it wherever they are), so a
+                    // fault face that rendered as a lazy-list item at index 0/1 gave the
+                    // user at the tail ZERO visible feedback (receipted: the screen
+                    // unchanged at the tap point until ~60 gap-drags reached the top).
+                    // Loading + fault + affordance share the pinned strip geometry.
+                    if (state.loadOlderError != null && state.rows.isNotEmpty()) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_load_older_error),
+                                message = errorUserMessage(state.loadOlderError),
+                                tone = StatusTone.ERROR,
+                                actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
+                                onAction = { state.rows.firstOrNull()?.let { onRetryOlder(it.rowId) } },
+                                modifier = Modifier.testTag("conversation_older_error_strip"),
+                            )
+                        }
+                    } else if (state.loadingOlder && state.rows.isNotEmpty()) {
+                        add {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("conversation_older_loading_strip"),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.conv_loading_older),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    } else if (state.hasMoreHistory && state.rows.isNotEmpty()) {
                         add {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -1071,9 +1104,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         val entryIndex = entries.indexOfFirst { (it as? TimelineEntry.Single)?.row?.rowId == target }
         if (entryIndex >= 0) {
             followBottom = false
-            val headerItems =
-                (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
-            listState.scrollToItem(headerItems + entryIndex)
+            // F-P35-A: the strip faces left the lazy list — items start at index 0.
+            listState.scrollToItem(entryIndex)
         }
     }
 
@@ -1086,10 +1118,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         (state.streaming[state.rows.lastOrNull()?.rowId]?.length ?: 0)
     LaunchedEffect(followKey) {
         if (!anchoredToTail && state.rows.isNotEmpty()) {
-            // Header items ("loading earlier…"/error strips) occupy index 0+.
-            val headerItems =
-                (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
-            listState.scrollToItem(headerItems + entries.size - 1)
+            // F-P35-A: the strip faces left the lazy list — the tail is the last item.
+            listState.scrollToItem(entries.size - 1)
             anchoredToTail = true
             lastKnownCount = state.rows.size
             return@LaunchedEffect
@@ -1147,25 +1177,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (state.loadingOlder) {
-                item(key = "older-loading") {
-                    Row(Modifier.fillMaxWidth().testTag("conversation_older_loading"), horizontalArrangement = Arrangement.Center) {
-                        Text(stringResource(R.string.conv_loading_older), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-            if (state.loadOlderError != null) {
-                item(key = "older-error") {
-                    AttentionStrip(
-                        title = stringResource(R.string.conv_load_older_error),
-                        message = errorUserMessage(state.loadOlderError),
-                        tone = StatusTone.ERROR,
-                        actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
-                        onAction = { state.rows.firstOrNull()?.let { onRetryOlder(it.rowId) } },
-                        modifier = Modifier.testTag("conversation_older_error"),
-                    )
-                }
-            }
+            // F-P35-A: the older-loading / older-error faces MOVED to the pinned strip —
+            // the timeline starts at index 0 (no header items to offset jumps/anchors by).
             items(
                 count = entries.size,
                 key = { entries[it].key },
