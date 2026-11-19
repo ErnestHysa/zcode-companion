@@ -425,11 +425,30 @@ class ConversationViewModel(
         }
     }
 
+    /**
+     * F-P31-A (pass-0 Phase 7): the in-flight upload coroutines per uploadId. The
+     * transaction may run in ANY caller's scope (the composer's rememberCoroutineScope
+     * for a picker arm, this VM's for a retry) — registering the RUNNING job under its
+     * uploadId lets a mid-upload Remove cancel the live transaction (the desktop's
+     * AbortController parity, pass-32 AI.D) instead of leaving a detached job that
+     * resurrects the removed chip. The port's CancellationException branch fires the
+     * server-side attachmentAbort on the way out.
+     */
+    private val uploadJobs = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Job>()
+
+    private fun trackUploadJob(uploadId: String, job: kotlinx.coroutines.Job) {
+        uploadJobs[uploadId] = job
+        job.invokeOnCompletion { uploadJobs.remove(uploadId, job) }
+    }
+
     /** §23.2 upload (full transaction; progress surfaces via the port overlay).
      *  FIELD (2026-10-04, vc33): failures were returned but never SHOWN — an upload
      *  into a reconnect window "didn't go through at all". Honest notice now. */
     suspend fun uploadAttachment(fileName: String, mime: String, bytes: ByteArray): ConversationPort.UploadResult {
         val uploadId = "up-" + java.util.UUID.randomUUID().toString()
+        // F-P31-A: the caller's coroutine (composer scope or VM scope) is tracked under
+        // its uploadId — removeUpload cancels it mid-transaction.
+        kotlin.coroutines.coroutineContext[kotlinx.coroutines.Job]?.let { trackUploadJob(uploadId, it) }
         val result = port.uploadAttachment(taskId, fileName, mime, bytes, uploadId) { _, _ -> }
         when (result) {
             is ConversationPort.UploadResult.Committed -> Unit
@@ -444,17 +463,21 @@ class ConversationViewModel(
     }
 
     fun removeUpload(uploadId: String) {
+        // F-P31-A: cancel the live transaction FIRST (the port's cancellation branch
+        // aborts server-side), then the port-side finality remove.
+        uploadJobs.remove(uploadId)?.cancel()
         scope.launch { port.removeUpload(uploadId) }
     }
 
     /** One-tap retry of a failed attachment chip (payload retained port-side). */
     fun retryUpload(uploadId: String) {
-        scope.launch {
+        val job = scope.launch {
             val result = port.retryUpload(taskId, uploadId)
             if (result !is ConversationPort.UploadResult.Committed) {
                 _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_RETRY_FAILED)
             }
         }
+        trackUploadJob(uploadId, job)
     }
 
     fun dismissHistoryNotice() {

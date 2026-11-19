@@ -1084,7 +1084,19 @@ class DefaultConversationPort(
             .onFailure { hub.log.warn("port.stagedPersist", "task=$taskId ${it.javaClass.simpleName}") }
     }
 
+    /**
+     * F-P31-A (pass-0 Phase 7): the user's chip Remove is FINAL. An upload job that
+     * outlives the remove (the composer-scope coroutine or the retry launch) used to
+     * re-add the removed chip via its per-chunk progress upsert — then the transaction's
+     * failure/commit upsert re-added it again (✗ FAILED under a banner, or worse the
+     * pass-32 silent ✓ READY when the server keeps accepting post-abort chunks). Every
+     * upsert is guarded on this set; removeUpload arms it BEFORE the abort/filter.
+     */
+    private val userRemovedUploads = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+
     private fun upsertAttachment(taskId: String, att: ConversationPort.ComposerAttachment) {
+        // F-P31-A: a user-removed chip NEVER resurrects (the desktop's remove is final).
+        if (att.uploadId in userRemovedUploads) return
         val current = composerAttachments.value[taskId] ?: emptyList()
         composerAttachments.value = composerAttachments.value +
             (taskId to (current.filterNot { it.uploadId == att.uploadId } + att))
@@ -1101,6 +1113,10 @@ class DefaultConversationPort(
         if (bytes.size > com.zcode.android.core.protocol.v4.AttachmentLimits.MAX_BYTES) {
             return ConversationPort.UploadResult.TooLarge
         }
+        // F-P31-A: a fresh upload/retry with this id re-arms the chip (the same uploadId
+        // re-enters the transaction on the one-tap Retry — only the explicit Remove arms
+        // the finality guard). FIRST, before any upsert path.
+        userRemovedUploads.remove(uploadId)
         // §17.6 parity (FIELD 2026-10-04, vc33: an upload started inside a reconnect
         // window hung on a dead socket and "didn't go through at all"): the offline
         // gate runs BEFORE the transaction, so the user gets an instant honest chip
@@ -1182,6 +1198,9 @@ class DefaultConversationPort(
     }
 
     override suspend fun removeUpload(uploadId: String) {
+        // F-P31-A: arm the finality guard FIRST — any in-flight transaction completion
+        // racing this remove (progress/commit/failure upsert) is already dead.
+        userRemovedUploads.add(uploadId)
         // Find the owning task + abort the transaction if it was live.
         val entry = composerAttachments.value.entries.firstOrNull { e -> e.value.any { it.uploadId == uploadId } }
         val att = entry?.value?.firstOrNull { it.uploadId == uploadId }
