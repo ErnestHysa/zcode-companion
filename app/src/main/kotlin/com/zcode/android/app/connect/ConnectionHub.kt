@@ -1814,6 +1814,9 @@ internal fun mapHookReviewRefresh(outcome: com.zcode.android.data.session.Comman
         is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> true
         is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> false
         is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> false
+        // F-P19-A: a typed confirmationRequired is still a host-refused verdict
+        // (the hooks-review family never runs the held-queue admission — same face).
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.ConfirmationRequired -> false
         is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed ->
             if (outcome.ack == null) null else false
     }

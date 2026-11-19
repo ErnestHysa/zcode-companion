@@ -907,6 +907,15 @@ fun ComposerBar(
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
     var dispositionDialog by remember { mutableStateOf(false) }
+    // F-P19-A (pass-0 Phase 6): the CAS-mismatch re-open — the ViewModel bumps the
+    // re-confirmation epoch on a guard.heldQueueConfirmationStale ack (the desktop's
+    // confirmationRequired face: the confirmation state re-enters, no fail settle).
+    // The dialog re-arms itself; `heldQueueIds()` re-reads the live projection at
+    // ANSWER time, so a queue patch that arrived meanwhile rides the retry (desktop
+    // parity: ids re-read from the current queue snapshot).
+    androidx.compose.runtime.LaunchedEffect(state.heldQueueReconfirmation) {
+        if (state.heldQueueReconfirmation > 0) dispositionDialog = true
+    }
     // N2.2: the queue state rides TWO places like the desktop — the placeholder swaps
     // to the follow-up-queue text AND an inline pill marks the queued send. The old
     // standalone busy strip is gone (replaced by this pair).

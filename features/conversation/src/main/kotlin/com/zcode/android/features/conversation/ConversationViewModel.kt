@@ -49,6 +49,14 @@ data class ConversationUiState(
     val hasMoreHistory: Boolean = false,
     /** Total rows in the session (window metadata; null when unknown) — shown in the load-earlier strip. */
     val totalRows: Long? = null,
+    /**
+     * F-P19-A (pass-0 Phase 6): the held-queue re-confirmation epoch — bumped on
+     * every `guard.heldQueueConfirmationStale` ack (and when a gated sheet goal
+     * awaits its choice). The composer observes it and re-arms its disposition
+     * dialog (the desktop's confirmationRequired face: ids re-read at answer time,
+     * no error settle). 0 = no request pending.
+     */
+    val heldQueueReconfirmation: Int = 0,
     val loadingOlder: Boolean = false,
     val loadOlderError: AppError? = null,
     val historyChanged: Boolean = false,
@@ -209,6 +217,13 @@ class ConversationViewModel(
     private val _busyInteractions = MutableStateFlow<Set<String>>(emptySet())
     private val _slashCommands = MutableStateFlow<List<ConversationPort.SlashCommandView>>(emptyList())
     private val _slashExtras = MutableStateFlow<ConversationPort.SlashExtras?>(null)
+    /**
+     * F-P19-A (pass-0 Phase 6): the held-queue re-confirmation epoch — the
+     * confirmationRequired face. Bumped on a `guard.heldQueueConfirmationStale`
+     * ack (the desktop re-opens its confirmation with re-read ids); the composer
+     * observes the epoch and re-arms its disposition dialog.
+     */
+    private val _heldQueueReconfirmation = MutableStateFlow(0)
     private var slashExtrasLoaded = false
     private var draftLoaded = false
     private var draftSaveJob: kotlinx.coroutines.Job? = null
@@ -233,9 +248,13 @@ class ConversationViewModel(
                 port.observeComposerAttachments(taskId),
             ) { s, p, b, d, att -> WriteState(s, p, b, d, att) },
             _sendNotice,
-        ) { write, notice -> write to notice },
+            // F-P19-A: the re-confirmation epoch is a COMBINE SOURCE — a bump must
+            // re-emit the state or the composer's dialog re-arm could wait on an
+            // unrelated frame (the GAP-A13 notice precedent).
+            _heldQueueReconfirmation,
+        ) { write, notice, reconfirmation -> write to notice to reconfirmation },
     ) { rowsEpoch, staleState, streamPhase, flags, writeNotice ->
-        val write = writeNotice.first
+        val write = writeNotice.first.first
         // §14.2 overlay reconciliation: a pending send whose authoritative userInput
         // row has landed is DONE — drop it (max lifetime guard renders it degraded).
         val now = System.currentTimeMillis()
@@ -267,7 +286,8 @@ class ConversationViewModel(
             draft = write.draft,
             sessionState = write.sessionState,
             pendingSends = livePending,
-            sendNotice = writeNotice.second,
+            sendNotice = writeNotice.first.second,
+            heldQueueReconfirmation = writeNotice.second,
             busyInteractions = write.busy,
             composerAttachments = write.composerAttachments,
             slashCommands = _slashCommands.value,
@@ -589,6 +609,13 @@ class ConversationViewModel(
                     "Conversation changed on the desktop — please try again.",
                     SendNotice.Kind.WARNING,
                 )
+            ConversationPort.SendOutcome.CONFIRMATION_REQUIRED ->
+                // F-P19-A (pass-0 Phase 6): the held-queue CAS mismatch — the
+                // desktop's confirmationRequired face. NO notice renders (the
+                // desktop records no fail settle); the disposition dialog
+                // re-arms with ids re-read from the live projection at answer
+                // time, and the preserved draft re-sends through it.
+                requestHeldQueueReconfirmation()
             ConversationPort.SendOutcome.FAILED ->
                 // FIELD (vc22): a FAILED outcome is now an authoritative DESKTOP
                 // rejection (the command reached it) — never "connection lost".
@@ -634,8 +661,19 @@ class ConversationViewModel(
                     "You're offline — the command was not sent and the draft is preserved.",
                     SendNotice.Kind.WARNING,
                 )
+            ConversationPort.SendOutcome.CONFIRMATION_REQUIRED ->
+                // F-P19-A (pass-0 Phase 6): the desktop re-opens the confirmation on
+                // the slash path too (V.B: both sendText and slash map the guard
+                // reasonCode to confirmationRequired). The preserved slash draft
+                // re-parses to the same dispatch when the re-armed dialog answers.
+                requestHeldQueueReconfirmation()
             else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING, failureKey)
         }
+    }
+
+    /** F-P19-A: bump the re-confirmation epoch — the composer re-arms its G50 dialog. */
+    private fun requestHeldQueueReconfirmation() {
+        _heldQueueReconfirmation.value += 1
     }
 
     /** Refusal path: NOTHING goes on the wire, the draft is preserved (desktop warn parity). */

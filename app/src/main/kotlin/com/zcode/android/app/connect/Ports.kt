@@ -425,6 +425,10 @@ class DefaultConversationPort(
             }
             is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> ConversationPort.SendOutcome.BLOCKED_OFFLINE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
+            // F-P19-A (pass-0 Phase 6): the held-queue CAS mismatch carries the
+            // desktop's confirmationRequired identity (the dialog re-opens; the
+            // outbox verdict stays FAILED_TERMINAL one layer down).
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.ConfirmationRequired -> ConversationPort.SendOutcome.CONFIRMATION_REQUIRED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
             // N-BD-3: MissingBaseRevision = the LOCAL projection gate (no wire sent).
@@ -673,6 +677,10 @@ class DefaultConversationPort(
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> ConversationPort.SendOutcome.BLOCKED_OFFLINE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
+            // F-P19-A: only the sendText/sendGoal paths run the held-queue admission;
+            // a ConfirmationRequired from any other command family surfaces as the
+            // typed re-confirmation face anyway (never the generic refusal).
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.ConfirmationRequired -> ConversationPort.SendOutcome.CONFIRMATION_REQUIRED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
             // N-BD-3: MissingBaseRevision = the LOCAL projection gate (no wire sent).

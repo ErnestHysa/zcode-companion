@@ -60,6 +60,21 @@ class CommandCoordinator(
         /** CAS `stale` (§15-S16): "conversation changed — please try again", draft preserved. */
         data class Stale(val ack: CommandAck) : Outcome()
 
+        /**
+         * F-P19-A (pass-0 Phase 6): the held-queue CAS mismatch — the host's
+         * `applyHeldQueueDisposition` answered the desktop-faithful failure ack
+         * `{status:"failed", reasonCode:"guard.heldQueueConfirmationStale"}`.
+         * Desktop parity: the renderer maps this reasonCode to
+         * `confirmationRequired` and RE-ENTERS the confirmation state with ids
+         * re-read from the queue snapshot (no fail settle is recorded). The
+         * outbox verdict is UNCHANGED — the attempt still stores
+         * FAILED_TERMINAL with the verbatim reasonCode (an authoritative host
+         * refusal); only the returned identity is typed so the UI can re-open
+         * its held-queue disposition dialog instead of rendering the generic
+         * refusal.
+         */
+        data class ConfirmationRequired(val ack: CommandAck) : Outcome()
+
         /** Server rejected/failed the command (typed ack), or outcome lost. */
         data class Failed(val ack: CommandAck?) : Outcome()
 
@@ -707,7 +722,16 @@ class CommandCoordinator(
                 }
                 else -> {
                     if (type == "sendText") dropOverlay(commandId)
-                    Outcome.Failed(ack)
+                    // F-P19-A (pass-0 Phase 6): the held-queue CAS mismatch keeps its
+                    // host-refused verdict (the Failed branch above stores the ack
+                    // verbatim) but returns the typed confirmationRequired identity —
+                    // the desktop re-opens its confirmation dialog on this reasonCode
+                    // (V.B) instead of surfacing an error.
+                    if (ack.reasonCode == GUARD_HELD_QUEUE_CONFIRMATION_STALE) {
+                        Outcome.ConfirmationRequired(ack)
+                    } else {
+                        Outcome.Failed(ack)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -766,6 +790,14 @@ class CommandCoordinator(
     fun observePendingSends(): StateFlow<List<PendingSend>> = pendingSends
 
     companion object {
+        /**
+         * F-P19-A (pass-0 Phase 6): the host's held-queue CAS-mismatch reasonCode —
+         * `applyHeldQueueDisposition` throws V4HeldQueueConfirmationStaleError and the
+         * dispatcher's execute-catch answers `{status:"failed", reasonCode:<this>}`
+         * (the desktop's sentinel string, pinned from the shipped bundle in Part V.B).
+         */
+        const val GUARD_HELD_QUEUE_CONFIRMATION_STALE = "guard.heldQueueConfirmationStale"
+
         /** command.ts setAssistantFeedback: `z.enum(["like","dislike"]).nullable()`. */
         val FEEDBACK_VALUES = setOf("like", "dislike")
 

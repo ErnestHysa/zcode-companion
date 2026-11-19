@@ -161,6 +161,15 @@ interface ConversationPort {
          * ever saw it). Maps CommandCoordinator.Outcome.MissingBaseRevision.
          */
         NOT_READY,
+        /**
+         * F-P19-A (pass-0 Phase 6): the held-queue CAS mismatch
+         * (`guard.heldQueueConfirmationStale`) — the desktop's confirmationRequired
+         * face: the confirmation dialog RE-OPENS with ids re-read from the live
+         * projection and the send retries through it. Copy contract: NO refusal
+         * notice renders on this outcome (the desktop records no fail settle); the
+         * outbox row keeps its FAILED_TERMINAL host-refused verdict one layer down.
+         */
+        CONFIRMATION_REQUIRED,
     }
 
     /** Truthful pending state (§14.2 overlay; in-memory, reconciled by the ViewModel). */
