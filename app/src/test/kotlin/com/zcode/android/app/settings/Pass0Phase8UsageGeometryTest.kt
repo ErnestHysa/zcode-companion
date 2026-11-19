@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -115,7 +114,10 @@ class Pass0Phase8UsageGeometryTest {
         rule.onNodeWithTag("usage_pull").performTouchInput {
             val startX = (right - left) / 2f
             val startY = (before - top - 60f).coerceAtLeast(10f)
-            swipeUp(start = androidx.compose.ui.geometry.Offset(startX, startY), end = androidx.compose.ui.geometry.Offset(startX, startY - 400f))
+            down(androidx.compose.ui.geometry.Offset(startX, startY))
+            moveTo(androidx.compose.ui.geometry.Offset(startX, startY - 200f))
+            moveTo(androidx.compose.ui.geometry.Offset(startX, startY - 400f))
+            up()
         }
         rule.waitForIdle()
         val after = summaryTop()
