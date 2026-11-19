@@ -929,6 +929,13 @@ private fun ConversationRoute(
         "…",
     )
     val noViewerCopy = { name: String -> noViewerTemplate.replace("…", name) }
+    // F-P33-A (pass-0 Phase 7) stage-1: the download-failed copy for BOTH external-open
+    // arms (the template's "…" holds the file name, the noViewer precedent).
+    val artifactDownloadFailedTemplate = androidx.compose.ui.res.stringResource(
+        com.zcode.android.features.conversation.R.string.artifact_download_failed,
+        "…",
+    )
+    val artifactDownloadFailedCopy = { name: String -> artifactDownloadFailedTemplate.replace("…", name) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     // G57: the notifier for the no-viewer fallback notice (the StatesDiscipline surface).
@@ -1057,7 +1064,16 @@ private fun ConversationRoute(
                 }.getOrNull()
                 val file = result?.file
                 if (file == null) {
+                    // F-P33-A (pass-0 Phase 7) stage-1: the download-null branch was
+                    // LOG-ONLY — the user tapped the chip and got NOTHING. The typed
+                    // notice (the diagnostic stays in the ring).
                     container.log.warn("attachment.open", "download failed: ${result?.error?.take(80)}")
+                    notifier.show(
+                        context.getString(
+                            com.zcode.android.features.conversation.R.string.artifact_download_failed,
+                            att.fileName,
+                        ),
+                    )
                     return@launch
                 }
                 runCatching {
@@ -1107,7 +1123,12 @@ private fun ConversationRoute(
                 val result = runCatching { container.filesPort.download(ref) }.getOrNull()
                 val file = result?.file
                 if (file == null) {
+                    // F-P33-A (pass-0 Phase 7) stage-1: LOG-ONLY before — the preview
+                    // card's Open tap ended in nothing when an unserved ref faulted the
+                    // download. The typed notice names the file (the F-P0-C silent
+                    // family closes here).
                     container.log.warn("preview.open", "download failed: ${result?.error?.take(80)}")
+                    notifier.show(artifactDownloadFailedCopy(ref.substringAfterLast('/')))
                     return@launch
                 }
                 runCatching {

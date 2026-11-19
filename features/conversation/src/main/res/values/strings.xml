@@ -550,6 +550,10 @@
     <string name="share_mode_print_detail">Hand the transcript to the system print service.</string>
     <!-- G57 (vc52 Phase 13): the no-viewer fallback (no dead preview cards). -->
     <string name="artifact_no_viewer">No installed app can open %1$s — install a viewer and try again.</string>
+    <!-- F-P33-A (pass-0 Phase 7) stage-1: the download-null branch on BOTH external-open
+         arms (the artifact preview card + the attachment chip) was LOG-ONLY — the user
+         tapped Open and got NOTHING. The typed notice names the file. -->
+    <string name="artifact_download_failed">Couldn\'t download %1$s for viewing — try again.</string>
     <!-- G80 (vc52 Phase 13): the kernel's 14-kind tool taxonomy labels. -->
     <string name="tool_kind_file_read">File read</string>
     <string name="tool_kind_file_write">File write</string>

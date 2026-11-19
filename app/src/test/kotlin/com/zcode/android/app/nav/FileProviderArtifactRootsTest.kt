@@ -34,6 +34,22 @@ class FileProviderArtifactRootsTest {
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
     private val authority get() = context.packageName + ".fileprovider"
 
+    /**
+     * androidx FileProvider caches its parsed PathStrategy in a JVM-static map keyed
+     * by authority — including the ABSOLUTE root paths computed from Robolectric's
+     * PER-METHOD temp cacheDir. Without this reset, the first test method to parse
+     * binds the strategy to ITS cacheDir and every later method's getUriForFile
+     * fails with "Failed to find configured root" (the solo run passes, the class
+     * run fails — the order-dependent tell).
+     */
+    @org.junit.Before
+    fun resetFileProviderCache() {
+        val field = androidx.core.content.FileProvider::class.java.getDeclaredField("sCache")
+        field.isAccessible = true
+        val cache = field.get(null) as java.util.Map<*, *>
+        synchronized(cache) { cache.clear() }
+    }
+
     @Test
     fun `stage-2 - a cache-downloads file resolves through the FileProvider`() {
         val dir = java.io.File(context.cacheDir, "downloads").apply { mkdirs() }
@@ -82,7 +98,8 @@ class FileProviderArtifactRootsTest {
             .substringBefore("// Phase 9 (§43.2-9)")
         assertTrue(
             "the artifact-open download-null branch must surface the typed download-failed notice",
-            artifactArm.contains("artifact_download_failed") && artifactArm.contains("notifier.show"),
+            (artifactArm.contains("artifact_download_failed") || artifactArm.contains("artifactDownloadFailedCopy")) &&
+                artifactArm.contains("notifier.show"),
         )
         assertTrue(
             "the attachment-chip external-open download-null branch must surface the typed download-failed notice",
