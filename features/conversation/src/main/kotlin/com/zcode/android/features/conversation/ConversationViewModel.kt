@@ -466,18 +466,46 @@ class ConversationViewModel(
         // F-P31-A: cancel the live transaction FIRST (the port's cancellation branch
         // aborts server-side), then the port-side finality remove.
         uploadJobs.remove(uploadId)?.cancel()
-        scope.launch { port.removeUpload(uploadId) }
+        scope.launch {
+            port.removeUpload(uploadId)
+            // N-BR-1: the second lying window — the removed chip leaves no "not sent"
+            // banner standing.
+            clearAttachmentNotice()
+        }
     }
 
     /** One-tap retry of a failed attachment chip (payload retained port-side). */
     fun retryUpload(uploadId: String) {
         val job = scope.launch {
             val result = port.retryUpload(taskId, uploadId)
-            if (result !is ConversationPort.UploadResult.Committed) {
+            if (result is ConversationPort.UploadResult.Committed) {
+                // N-BR-1 (pass-0 Phase 7): the retry COMMITTED — the "not sent" banner's
+                // claim is false; the keyed attachment notice clears. This also closes the
+                // CROSS-CHIP window: the banner is per-conversation, so chip B's committed
+                // retry clears chip A's stale FAILED banner.
+                clearAttachmentNotice()
+            } else {
                 _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_RETRY_FAILED)
             }
         }
         trackUploadJob(uploadId, job)
+    }
+
+    /**
+     * N-BR-1: clear only the ATTACHMENT-class keyed notices. The banner is
+     * per-conversation, so a successful retry/remove clears the lying window (retry
+     * committed / chip gone ⇒ "not sent" is false) WITHOUT swallowing an unrelated
+     * switch/send notice that happens to be up.
+     */
+    private fun clearAttachmentNotice() {
+        val key = _sendNotice.value?.key ?: return
+        if (
+            key == SendNotice.Key.ATTACHMENT_OFFLINE ||
+            key == SendNotice.Key.ATTACHMENT_FAILED ||
+            key == SendNotice.Key.ATTACHMENT_RETRY_FAILED
+        ) {
+            _sendNotice.value = null
+        }
     }
 
     fun dismissHistoryNotice() {
