@@ -115,7 +115,7 @@ class Pass0Phase8UsageGeometryTest {
         rule.onNodeWithTag("usage_pull").performTouchInput {
             val startX = (right - left) / 2f
             val startY = (before - top - 60f).coerceAtLeast(10f)
-            swipeUp(startX = startX, startY = startY, endX = startX, endY = startY - 400f)
+            swipeUp(start = androidx.compose.ui.geometry.Offset(startX, startY), end = androidx.compose.ui.geometry.Offset(startX, startY - 400f))
         }
         rule.waitForIdle()
         val after = summaryTop()

@@ -24,22 +24,23 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class Pass0Phase8PollCadenceTest {
 
-    private fun run(id: String, status: WorkflowRunStatus) = WorkflowRunSummary(
-        runId = id, label = id, status = status, statusRaw = status.wire, stopReason = null, toolCallId = null,
-        updatedAtMs = 1, resumedFrom = null, supersededBy = null, failureCode = null, failureMessage = null, resumable = false,
+    private fun liveRun(): WorkflowRunSummary = WorkflowRunSummary(
+        runId = "r1", label = "r1", status = WorkflowRunStatus.RUNNING, statusRaw = WorkflowRunStatus.RUNNING.wire,
+        stopReason = null, toolCallId = null, updatedAtMs = 1, resumedFrom = null, supersededBy = null,
+        failureCode = null, failureMessage = null, resumable = false,
     )
 
-    private class CadencePort : Phase7FakePort() {
+    private class CadencePort(private val liveRun: WorkflowRunSummary) : Phase7FakePort() {
         var runReads = 0
         override suspend fun fetchWorkflowRuns(taskId: String): List<WorkflowRunSummary> {
             runReads++
-            return listOf(run("r1", WorkflowRunStatus.RUNNING))
+            return listOf(liveRun)
         }
     }
 
     @Test
     fun `F-P1-D - the live-run poll drum runs at the 30s floor, not the 8s drum`() = runTest {
-        val port = CadencePort()
+        val port = CadencePort(liveRun())
         val vm = ConversationViewModel(port, backgroundScope, "s")
         vm.refreshWorkflowRuns()
         runCurrent()
@@ -50,7 +51,7 @@ class Pass0Phase8PollCadenceTest {
         runCurrent()
         assertEquals(
             1, port.runReads,
-            "F-P1-D: a poll tick fired before the 30 s floor — the 8 s drum face (reads=$port.runReads)",
+            "F-P1-D: a poll tick fired before the 30 s floor — the 8 s drum face (reads=${port.runReads})",
         )
 
         // The first tick lands at the 30 s floor; the run is still live so the drum continues.
