@@ -826,6 +826,8 @@ internal class FakeConversationRepository : ConversationRepository {
     }
 
     override suspend fun cachedRowCount(sessionId: SessionId): Int = rows[sessionId.raw]?.value?.size ?: 0
+    override suspend fun minCachedRowId(sessionId: SessionId): Long? = rows[sessionId.raw]?.value?.minOfOrNull { it.rowId }
+    override suspend fun maxCachedRowId(sessionId: SessionId): Long? = rows[sessionId.raw]?.value?.maxOfOrNull { it.rowId }
 }
 
 internal class FakeEndpointRepository : EndpointRepository {

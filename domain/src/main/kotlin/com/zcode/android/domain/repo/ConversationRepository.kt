@@ -102,6 +102,15 @@ interface ConversationRepository {
 
     /** Diagnostics: cached row count for a session (bounds observability, INV-5). */
     suspend fun cachedRowCount(sessionId: SessionId): Int
+
+    /**
+     * F-P36-A: the cache's rowId bounds — the paging-plane re-derivation inputs.
+     * `minCachedRowId` vs the snapshot window's firstRowId decides "more history
+     * above the cache" AFTER a bound trim re-opened it; `maxCachedRowId - firstRowId + 1`
+     * is the live session extent (N-BM-1's stale-total cure).
+     */
+    suspend fun minCachedRowId(sessionId: SessionId): Long?
+    suspend fun maxCachedRowId(sessionId: SessionId): Long?
 }
 
 /** Task list cache — ETag-validated projections (§17.3, §7.8). */

@@ -254,6 +254,40 @@ class ConversationSessionManager(
     val totalRows: kotlinx.coroutines.flow.StateFlow<Long?> = _totalRows.asStateFlow()
 
     /**
+     * F-P36-A: the snapshot window's first rowId (the session's true top). The store's
+     * cache bound vs this decides "more history above the cache" — the WIRE-window
+     * derivation goes stale the moment a bound trim re-opens history a page had closed
+     * (the receipted stranded hasMore=false: head rows unreachable for the session).
+     */
+    @Volatile
+    private var windowFirstRowId: Long? = null
+
+    /**
+     * F-P36-A + N-BM-1: re-derive the paging plane from the STORE's actual bounds.
+     * Called after every store apply that can change them (snapshot / row delta / a
+     * page the port applied directly), so the flow the UI mirrors is always current:
+     *
+     *  - hasMore ⇔ minCachedRowId > windowFirstRowId (the cache no longer reaches the
+     *    session top — reachable head rows exist);
+     *  - total = max(snapshot totalCount, maxCachedRowId - windowFirstRowId + 1) — the
+     *    snapshot total is subscribe-time stale while deltas append (the receipted
+     *    "370 of 339" / "420 of 339" faces); the extent derivation never regresses it,
+     *    and a rewind snapshot RESETS the total before this merge (authoritative).
+     */
+    suspend fun rederivePagingFromStore() {
+        val first = windowFirstRowId
+        val min = store.minCachedRowId(sessionId)
+        val max = store.maxCachedRowId(sessionId)
+        // No bounds signal (empty store / an inert fake): keep the last derivation.
+        if (min == null && max == null) return
+        if (first != null) {
+            _hasMoreHistory.value = min == null || min > first
+        }
+        val derived = max?.let { it - (first ?: 1L) + 1L }
+        _totalRows.value = listOfNotNull(_totalRows.value, derived).maxOrNull()
+    }
+
+    /**
      * Defense-in-depth duplicate guard (round 16): the same (epoch, toSeq) snapshot can
      * legitimately repeat with NEW content (S12/S13 reconciliation), so the key includes
      * a rows-content hash. Identical content + identical position ⇒ re-applying 60 rows
@@ -280,20 +314,24 @@ class ConversationSessionManager(
         lastAppliedSnapshotKey = dedupeKey
         log.debug("manager.snapshot", "session=${sessionId.raw} rows=${e.rows.size} epoch=${e.logEpoch.take(24)}")
         lastSnapshotRows = e.rows
+        // The snapshot's own totalCount is AUTHORITATIVE (a rewind lowers it) — the
+        // re-derive below only ever raises it with the store's live extent.
         _totalRows.value = e.totalCount
+        windowFirstRowId = e.firstRowId
         e.sessionState?.let {
             _sessionState.value = it
             captureHookReview(it)
             onSessionState(it)
         }
-        // rowsWindowSchema: window's first row == firstRowId ⇔ at top (null = no window info).
-        _hasMoreHistory.value = e.firstRowId != null &&
-            (e.rows.isEmpty() || e.rows.first().rowId != e.firstRowId)
+        // rowsWindowSchema: the window's first row vs the SESSION top — but F-P36-A:
+        // derive from the STORE's post-trim bounds, not the wire window (the snapshot's
+        // own enforceBound may have evicted the head). Runs after applyEffects.
+        applyEffects(reducer.onSnapshot(TopicSnapshotOf(e)))
+        rederivePagingFromStore()
         log.debug(
             "manager.hasMore",
             "session=${sessionId.raw} firstRowId=${e.firstRowId} total=${e.totalCount} firstCached=${e.rows.firstOrNull()?.rowId} hasMore=${_hasMoreHistory.value}",
         )
-        applyEffects(reducer.onSnapshot(TopicSnapshotOf(e)))
         observeRowsForTaskState(e.rows)
         onSnapshotApplied(e.rows)
     }
@@ -346,6 +384,7 @@ class ConversationSessionManager(
 
     private suspend fun applyEffects(effects: List<ConversationTopicReducer.Effect>) {
         var escalateRequest: Pair<String, Pair<String, Long>?>? = null
+        var pagingBoundsChanged = false
         for (effect in effects) {
             when (effect) {
                 is ConversationTopicReducer.Effect.Persist -> {
@@ -355,6 +394,12 @@ class ConversationSessionManager(
                         // than merge (§15-S9/S10; the store rejected with zero mutation).
                         if (result is com.zcode.android.domain.repo.StoreApplyResult.EpochRejected) {
                             escalateRequest = "store epoch reject (cached=${result.currentEpoch.take(24)})" to null
+                        }
+                        // F-P36-A: these are the ops whose apply path runs enforceBound
+                        // (upserts append the tail / removals truncate) — a trim may have
+                        // re-opened history above the cache.
+                        if (op is ConversationStoreOp.RowUpserted || op is ConversationStoreOp.RowRemoved) {
+                            pagingBoundsChanged = true
                         }
                     }
                 }
@@ -372,6 +417,7 @@ class ConversationSessionManager(
             }
         }
         _taskState.value = taskMachine.state
+        if (pagingBoundsChanged) rederivePagingFromStore()
         escalateRequest?.let { (reason, base) -> escalate(reason, base?.first, base?.second) }
     }
 

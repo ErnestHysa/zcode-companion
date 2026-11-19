@@ -89,6 +89,13 @@ interface ConversationDao {
     @Query("SELECT COUNT(*) FROM conversation_rows WHERE sessionId = :sessionId")
     suspend fun countRows(sessionId: String): Int
 
+    /** F-P36-A: the cache's rowId bounds — the hasMore/total re-derivation inputs. */
+    @Query("SELECT MIN(rowId) FROM conversation_rows WHERE sessionId = :sessionId")
+    suspend fun minRowId(sessionId: String): Long?
+
+    @Query("SELECT MAX(rowId) FROM conversation_rows WHERE sessionId = :sessionId")
+    suspend fun maxRowId(sessionId: String): Long?
+
     /** Oldest rowIds beyond the newest :keep — §17.3 bound victim set. */
     @Query(
         "SELECT rowId FROM conversation_rows WHERE sessionId = :sessionId ORDER BY rowId DESC LIMIT -1 OFFSET :keep",

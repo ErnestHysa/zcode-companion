@@ -40,6 +40,8 @@ class ManagerHookReviewLedgerTest {
         override suspend fun currentEpoch(sessionId: SessionId): String? = null
         override suspend fun apply(op: ConversationStoreOp): StoreApplyResult = StoreApplyResult.Applied
         override suspend fun cachedRowCount(sessionId: SessionId): Int = 0
+        override suspend fun minCachedRowId(sessionId: SessionId): Long? = null
+        override suspend fun maxCachedRowId(sessionId: SessionId): Long? = null
     }
 
     private fun manager(

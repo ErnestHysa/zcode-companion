@@ -367,13 +367,17 @@ class ConversationViewModel(
                     // §15-S9: the desktop rewound history while we paged — the page was
                     // rejected with zero mutation; re-anchor to the authoritative tail.
                     _historyChanged.value = true
-                    _hasMore.value = false
                     onResult(0) // defined contract: zero rows added, no scroll adjust
                 } else {
-                    _hasMore.value = result.hasMore
                     _loadOlderError.value = result.error
                     onResult(result.rowsAdded)
                 }
+                // F-P36-A: `_hasMore` has ONE writer — the manager's authoritative flow
+                // (this VM mirrors it). The page response's hasMore was honest only at
+                // its instant; writing it here POISONED the mirror (a later bound trim
+                // re-opens history above the cache and no snapshot ever re-emits — the
+                // receipted stranded-strip: head rows unreachable for the session). The
+                // port re-derives the manager's plane from the store after the page.
             } finally {
                 _loadingOlder.value = false
             }

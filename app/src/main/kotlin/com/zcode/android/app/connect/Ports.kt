@@ -941,7 +941,18 @@ class DefaultConversationPort(
                     )
                     ConversationPort.LoadOlderResult(0, page.hasMore, error = null, epochRejected = true)
                 }
-                else -> ConversationPort.LoadOlderResult(page.rows.size, page.hasMore, error = null, epochRejected = false)
+                else -> {
+                    // F-P36-A: the page apply bypasses the manager (the store op lands
+                    // directly) — re-derive the paging plane from the store so the
+                    // strip's hasMore/total reflect the post-page cache bound (the
+                    // single-writer authority), not just the response's instant truth.
+                    runCatching {
+                        hub.coordinatorOrNull()?.manager(taskId)?.rederivePagingFromStore()
+                    }.onFailure {
+                        hub.log.warn("port.pageRederive", "${it.javaClass.simpleName}: ${it.message?.take(120)}")
+                    }
+                    ConversationPort.LoadOlderResult(page.rows.size, page.hasMore, error = null, epochRejected = false)
+                }
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e

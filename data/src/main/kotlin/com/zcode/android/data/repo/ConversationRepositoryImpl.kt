@@ -152,6 +152,10 @@ class ConversationRepositoryImpl(
 
     override suspend fun cachedRowCount(sessionId: SessionId): Int = dao.countRows(sessionId.raw)
 
+    override suspend fun minCachedRowId(sessionId: SessionId): Long? = dao.minRowId(sessionId.raw)
+
+    override suspend fun maxCachedRowId(sessionId: SessionId): Long? = dao.maxRowId(sessionId.raw)
+
     // ------------------------------------------------------------------ mapping
 
     private fun ConversationRowEntity.toDomain(): ConversationRow? = try {
