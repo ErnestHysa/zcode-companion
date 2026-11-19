@@ -164,8 +164,15 @@ class Pass0Phase7ComposerUploadVmTest {
         val strip = MutableStateFlow(mixedStrip())
         val port = RetryCommittedPort(attachments = strip)
         val vm = ConversationViewModel(port, backgroundScope, "s1")
-        runCurrent()
         vm.onDraftChange("mirobexed")
+        // The state combine is async — routeSendPrompt reads the SNAPSHOT in state,
+        // so the strip must be settled before send() (real usage: the strip rendered
+        // long before the send; an instant-send would race the combine).
+        var passes = 0
+        while (vm.state.value.composerAttachments.size < 2 && passes < 100) {
+            runCurrent()
+            passes += 1
+        }
         vm.send()
         runCurrent()
         kotlinx.coroutines.delay(1)
@@ -192,8 +199,12 @@ class Pass0Phase7ComposerUploadVmTest {
         )
         val port = RetryCommittedPort(attachments = strip)
         val vm = ConversationViewModel(port, backgroundScope, "s1")
-        runCurrent()
         vm.onDraftChange("clean send")
+        var passes = 0
+        while (vm.state.value.composerAttachments.size < 1 && passes < 100) {
+            runCurrent()
+            passes += 1
+        }
         vm.send()
         runCurrent()
         kotlinx.coroutines.delay(1)

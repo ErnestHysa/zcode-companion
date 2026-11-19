@@ -119,6 +119,9 @@ data class SendNotice(
     enum class Key {
         SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED, EFFORT_REFUSED,
         ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
+        // N-BS-1 (pass-0 Phase 7): the mixed-state send's per-send exclusion signal
+        // (a ✓ ready chip rode the payload; the ✗ failed chip was silently dropped).
+        ATTACHMENT_SENT_WITHOUT,
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED, GOAL_PAUSE_REFUSED,
         // Phase 4A row actions
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
@@ -662,9 +665,27 @@ class ConversationViewModel(
             port.clearDraft(taskId)
             return
         }
+        // N-BS-1 (pass-0 Phase 7): the send payload carries ONLY ready chips — a
+        // ✗ failed chip in the strip is silently EXCLUDED and the message goes out as
+        // if complete. Snapshot the pre-send strip so an ACCEPTED send can surface the
+        // exclusion (the user's only other trace was the lingering ✗ chip).
+        val excludedChips = state.value.composerAttachments
+            .filter { it.state == "failed" }
         when (port.sendPrompt(taskId, text, heldQueueDisposition, requestedDelivery, expectedHeldQueueItemIds)) {
             ConversationPort.SendOutcome.ACCEPTED -> {
-                _sendNotice.value = null
+                if (excludedChips.isNotEmpty()) {
+                    // N-BS-1: the per-send signal — the message went out WITHOUT the
+                    // failed chip. (Overwrites the empty ACCEPTED notice by design:
+                    // the exclusion is the honest face of THIS send.)
+                    _sendNotice.value = SendNotice(
+                        "Sent without ${excludedChips.first().fileName} — the upload failed.",
+                        SendNotice.Kind.WARNING,
+                        SendNotice.Key.ATTACHMENT_SENT_WITHOUT,
+                        listOf(excludedChips.first().fileName),
+                    )
+                } else {
+                    _sendNotice.value = null
+                }
                 draftSaveJob?.cancel()
                 _draft.value = ""
                 port.clearDraft(taskId)

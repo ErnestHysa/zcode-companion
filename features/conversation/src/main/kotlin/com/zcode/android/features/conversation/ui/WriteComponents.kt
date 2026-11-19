@@ -1839,6 +1839,8 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.ATTACHMENT_OFFLINE -> R.string.notice_attachment_offline
         SendNotice.Key.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
         SendNotice.Key.ATTACHMENT_RETRY_FAILED -> R.string.notice_attachment_retry_failed
+        // N-BS-1 (pass-0 Phase 7): the mixed-state send's exclusion signal.
+        SendNotice.Key.ATTACHMENT_SENT_WITHOUT -> R.string.notice_attachment_sent_without
         SendNotice.Key.COMPACT_REFUSED -> R.string.notice_compact_refused
         SendNotice.Key.GOAL_REFUSED -> R.string.notice_goal_refused
         SendNotice.Key.GOAL_RESUME_REFUSED -> R.string.notice_goal_resume_refused

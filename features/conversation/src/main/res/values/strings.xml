@@ -240,6 +240,8 @@
     <string name="notice_attachment_offline">Offline — the attachment was not sent. Retry when connected.</string>
     <string name="notice_attachment_failed">Attachment failed to upload (%1$s) — not sent.</string>
     <string name="notice_attachment_retry_failed">Attachment retry failed — not sent.</string>
+    <!-- N-BS-1 (pass-0 Phase 7): the mixed-state send's exclusion signal. -->
+    <string name="notice_attachment_sent_without">Sent without %1$s — the upload failed.</string>
     <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
     <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
     <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
