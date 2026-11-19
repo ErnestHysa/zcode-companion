@@ -49,6 +49,15 @@ class Pass0Phase7AttachmentChipFacesTest {
         ref = ref, fileName = "diagram.png", mime = "image/png", bytes = tinyPng.size.toLong(), previewRef = null,
     )
 
+    /** produceState settles on Robolectric's scheduler asynchronously — wait, never
+     *  assume waitForIdle caught the recomposition (the G28 viewer test precedent). */
+    private fun awaitUnavailable(ref: String) {
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("row_attachment_unavailable_$ref", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     @Test
     fun `F-P11-A - a failing loader renders the unavailable face, never eternal Loading`() {
         val loads = mutableListOf<String>()
@@ -57,15 +66,15 @@ class Pass0Phase7AttachmentChipFacesTest {
                 Column {
                     YouBlock(
                         text = "see attached",
-                        attachments = listOf(imageAtt()),
+                        attachments = listOf(imageAtt("att-fail-a")),
                         loadAttachment = { att -> loads.add(att.ref); null }, // the read fails
                         onOpenAttachment = {},
                     )
                 }
             }
         }
-        rule.waitForIdle()
-        rule.onNodeWithTag("row_attachment_unavailable_att-img-9").assertExists()
+        awaitUnavailable("att-fail-a")
+        rule.onNodeWithTag("row_attachment_unavailable_att-fail-a", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("Unavailable", substring = true).assertExists()
         // The lying window: the chip still claiming "Loading…" after the read failed.
         rule.onAllNodesWithText("Loading", substring = true).let {
@@ -81,16 +90,27 @@ class Pass0Phase7AttachmentChipFacesTest {
                 Column {
                     YouBlock(
                         text = "see attached",
-                        attachments = listOf(imageAtt()),
+                        attachments = listOf(imageAtt("att-retry-b")),
                         loadAttachment = { att -> loads.add(att.ref); null },
                         onOpenAttachment = {},
                     )
                 }
             }
         }
-        rule.waitForIdle()
+        awaitUnavailable("att-retry-b")
         assertEquals("the initial load ran once", 1, loads.size)
-        rule.onNodeWithTag("row_attachment_unavailable_att-img-9").performClick()
+        // The G28 tap pattern: click the CHIP's base tag (the Surface carries the
+        // retry clickable in the unavailable state — the same node the zoom tap
+        // uses in the ready state).
+        rule.onNodeWithTag("row_attachment_att-retry-b").performClick()
+        // The re-keyed produceState restarts the producer asynchronously — settle
+        // the clock (waitUntil's pump misses it on Robolectric; the probe proved
+        // idle+advance+idle sees the retry).
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeBy(500)
+        rule.waitForIdle()
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeBy(500)
         rule.waitForIdle()
         assertEquals("the retry must re-invoke the loader", 2, loads.size)
     }
@@ -110,19 +130,19 @@ class Pass0Phase7AttachmentChipFacesTest {
             }
         }
         rule.waitUntil(5_000) {
-            rule.onAllNodesWithText("Unavailable", substring = true).fetchSemanticsNodes().isEmpty()
+            rule.onAllNodesWithText("Unavailable", substring = true).fetchSemanticsNodes().isEmpty() &&
+                rule.onAllNodesWithText("Loading", substring = true).fetchSemanticsNodes().isEmpty()
         }
         rule.onNodeWithTag("row_attachment_att-img-9").assertExists()
-        rule.onAllNodesWithText("Loading", substring = true).let {
-            assertEquals(0, it.fetchSemanticsNodes().size)
-        }
     }
 
     @Test
     fun `F-P11-A - the zoom viewer renders its honest unavailable face on a failed load`() {
         rule.setContent { ZCodeTheme { AttachmentViewerDialog(att = imageAtt(), loader = { null }, onDismiss = {}) } }
-        rule.waitForIdle()
-        rule.onNodeWithTag("attachment_viewer_unavailable").assertExists()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("attachment_viewer_unavailable", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         rule.onAllNodesWithText("Loading", substring = true).let {
             assertEquals("the viewer must not claim Loading after the load failed", 0, it.fetchSemanticsNodes().size)
         }

@@ -1791,6 +1791,20 @@ fun toolMetaLine(row: ConversationRow.ToolCall): String {
 }
 
 /**
+ * F-P11-A (pass-0 Phase 7): the image load is TRI-STATE — Loading / Ready /
+ * Unavailable. produceState's `runCatching { load(att) }.getOrNull()` used to
+ * collapse a FAILED read into the same `null` as a still-loading one, so a failed
+ * chip claimed "Loading…" forever (no unavailable state, no retry). The
+ * unavailable face is a TAP TARGET: it re-invokes the loader (the retryEpoch
+ * re-keys the produceState).
+ */
+private sealed interface AttachmentLoad {
+    data object Loading : AttachmentLoad
+    data class Ready(val bytes: ByteArray) : AttachmentLoad
+    data object Unavailable : AttachmentLoad
+}
+
+/**
  * A3.1: one attachment — an image (thumbnail, bytes fetched once and cached in the
  * small in-memory LRU) or a named file chip. A failed/absent loader still renders the
  * chip (INV-11: never a blank hole).
@@ -1804,17 +1818,30 @@ private fun AttachmentView(
     onOpenExternally: (() -> Unit)? = null,
 ) {
     val isImage = att.mime.startsWith("image/")
-    val bytes by androidx.compose.runtime.produceState<ByteArray?>(initialValue = null, key1 = att.ref) {
+    // F-P11-A: the tap-to-retry epoch — bumping it re-keys the produceState.
+    var retryEpoch by androidx.compose.runtime.remember(att.ref) {
+        androidx.compose.runtime.mutableIntStateOf(0)
+    }
+    val loadState by androidx.compose.runtime.produceState<AttachmentLoad>(
+        initialValue = AttachmentLoad.Loading,
+        key1 = att.ref,
+        key2 = retryEpoch,
+    ) {
         if (isImage && load != null) {
-            value = AttachmentImageCache.get(att.ref) ?: run {
+            val cached = AttachmentImageCache.get(att.ref)
+            if (cached != null) {
+                value = AttachmentLoad.Ready(cached)
+            } else {
                 val loaded = runCatching { load(att) }.getOrNull()
                 if (loaded != null) AttachmentImageCache.put(att.ref, loaded)
-                loaded
+                value = loaded?.let { AttachmentLoad.Ready(it) } ?: AttachmentLoad.Unavailable
             }
+        } else {
+            value = AttachmentLoad.Unavailable
         }
     }
     if (isImage) {
-        val bitmap = bytes?.let { b ->
+        val bitmap = (loadState as? AttachmentLoad.Ready)?.bytes?.let { b ->
             runCatching {
                 android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)
             }.getOrNull()?.asImageBitmap()
@@ -1825,29 +1852,50 @@ private fun AttachmentView(
             modifier = modifier
                 .testTag("row_attachment_${att.ref}")
                 .size(width = 132.dp, height = 96.dp)
-                // G28: the thumbnail is no longer a dead end — tap opens the zoom viewer.
                 .then(
-                    if (onOpenFull != null) {
-                        Modifier.clickable(onClick = onOpenFull)
-                    } else {
-                        Modifier
+                    when {
+                        // F-P11-A: the unavailable face IS the retry affordance.
+                        loadState is AttachmentLoad.Unavailable ->
+                            Modifier.clickable { retryEpoch += 1 }.testTag("row_attachment_unavailable_${att.ref}")
+                        onOpenFull != null -> Modifier.clickable(onClick = onOpenFull)
+                        else -> Modifier
                     },
                 ),
         ) {
-            if (bitmap != null) {
-                androidx.compose.foundation.Image(
-                    bitmap = bitmap,
-                    contentDescription = att.fileName,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier,
-                )
-            } else {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.row_attachment_loading),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            when {
+                bitmap != null -> {
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap,
+                        contentDescription = att.fileName,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier,
                     )
+                }
+                loadState is AttachmentLoad.Unavailable -> {
+                    // F-P11-A: the face's own tag (a node carries ONE TestTag — the
+                    // Surface keeps the base row_attachment_<ref> tag; the tap-to-retry
+                    // clickable is the Surface's).
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("row_attachment_unavailable_${att.ref}"),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.row_attachment_unavailable),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                else -> {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.row_attachment_loading),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -1914,8 +1962,16 @@ fun AttachmentViewerDialog(
     loader: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)?,
     onDismiss: () -> Unit,
 ) {
+    // F-P11-A: the load is tri-state here too — a FAILED read renders the honest
+    // unavailable face, never an eternal "Loading…" (reopening the dialog is the retry).
+    var loadFailed by androidx.compose.runtime.remember(att.ref) { androidx.compose.runtime.mutableStateOf(false) }
     val bytesState = androidx.compose.runtime.produceState<ByteArray?>(initialValue = null, key1 = att.ref) {
-        value = if (loader != null) runCatching { loader(att) }.getOrNull() else null
+        loadFailed = false
+        value = if (loader != null) {
+            runCatching { loader(att) }.getOrNull().also { if (it == null) loadFailed = true }
+        } else {
+            null
+        }
     }
     val bytes = bytesState.value
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
@@ -1947,11 +2003,21 @@ fun AttachmentViewerDialog(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        stringResource(R.string.row_attachment_loading),
-                        color = androidx.compose.ui.graphics.Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    if (loadFailed) {
+                        // F-P11-A: the honest unavailable face (reopening = the retry).
+                        Text(
+                            stringResource(R.string.row_attachment_unavailable),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("attachment_viewer_unavailable"),
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.row_attachment_loading),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
             androidx.compose.material3.TextButton(
