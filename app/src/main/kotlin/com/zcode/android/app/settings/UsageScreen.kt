@@ -612,7 +612,10 @@ private fun DailyModelTrendSection(daily: List<AppUsageSnapshot.DailyModelUsage>
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    day.date.take(5),
+                    // N-BP-2: the decoder feeds ISO dates ("2026-11-12") — the old
+                    // take(5) sliced the YEAR ("2026-" for every row); takeLast(5) is
+                    // the MM-DD slice (and idempotent for already-sliced shapes).
+                    day.date.takeLast(5),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(44.dp),
