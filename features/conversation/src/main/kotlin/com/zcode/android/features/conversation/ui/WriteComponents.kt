@@ -902,6 +902,12 @@ fun ComposerBar(
     mentionCategoriesProvider: (suspend (category: String, query: String) -> List<MentionOption>)? = null,
     /** G9 (vc51): the shared-context chip's discard (null = hidden). */
     onDiscardSharedContext: (() -> Unit)? = null,
+    /**
+     * F-P20-A (pass-0 Phase 6): the disposition dialog was dismissed WITHOUT
+     * answering — a staged sheet goal must never send (the ViewModel drops its
+     * stash). No-op for composer-originated dialogs.
+     */
+    onHeldQueueDismissed: () -> Unit = {},
 ) {
     val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
@@ -1002,7 +1008,18 @@ fun ComposerBar(
             }
             // GAP-A9: one dispatch path for the send BUTTON and the IME send action.
             fun dispatchSend() {
-                if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
+                // F-P20-A (pass-0 Phase 6): a /compact dispatch NEVER asks — the
+                // desktop's compact handler (vMc) consults the routing mode, never a
+                // disposition, so the clear-vs-keep choice has no wire meaning for it
+                // (the compact self-queues under choice either way; the desktop never
+                // asks). The pass-22 receipt showed the phone's ask discarding the
+                // user's "Clear queue & send" answer on exactly this dispatch.
+                val readyAttachmentCount = state.composerAttachments.count { it.state == "ready" && it.ref != null }
+                val compactDispatch = com.zcode.android.features.conversation.parseVisibleSlashCommand(
+                    state.draft,
+                    readyAttachmentCount,
+                ) is com.zcode.android.features.conversation.SlashDispatch.Compact
+                if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE && !compactDispatch) {
                     // G50: the disposition dialog; the queued ids the user sees ride
                     // the choice as the desktop's expectedHeldQueueItemIds CAS set,
                     // alongside any G49 one-shot override.
@@ -1580,36 +1597,58 @@ fun ComposerBar(
     }
 
     if (dispositionDialog) {
-        // Verified `choice` routing (held queue): the desktop asks the client to
-        // disposition the queue — clear it or keep it (sendText.heldQueueDisposition).
-        AlertDialog(
-            onDismissRequest = { dispositionDialog = false },
-            title = { Text(stringResource(R.string.queue_held_title)) },
-            text = { Text(stringResource(R.string.queue_held_body)) },
-            confirmButton = {
-                ZCodeButton(
-                    onClick = {
-                        dispositionDialog = false
-                        haptics.confirm()
-                        onSend("clearQueueAndSend", deliveryOverride, heldQueueIds())
-                        deliveryOverride = null
-                    },
-                    modifier = Modifier.testTag("composer_disposition_clear"),
-                ) { Text(stringResource(R.string.queue_clear_send)) }
+        HeldQueueDispositionDialog(
+            onDismiss = {
+                dispositionDialog = false
+                onHeldQueueDismissed() // F-P20-A: a dismissed answer never sends (drops a staged sheet goal)
             },
-            dismissButton = {
-                ZCodeOutlinedButton(
-                    onClick = {
-                        dispositionDialog = false
-                        haptics.confirm()
-                        onSend("keepQueueAndSend", deliveryOverride, heldQueueIds())
-                        deliveryOverride = null
-                    },
-                    modifier = Modifier.testTag("composer_disposition_keep"),
-                ) { Text(stringResource(R.string.queue_keep_send)) }
+            onClear = {
+                dispositionDialog = false
+                haptics.confirm()
+                onSend("clearQueueAndSend", deliveryOverride, heldQueueIds())
+                deliveryOverride = null
+            },
+            onKeep = {
+                dispositionDialog = false
+                haptics.confirm()
+                onSend("keepQueueAndSend", deliveryOverride, heldQueueIds())
+                deliveryOverride = null
             },
         )
     }
+}
+
+/**
+ * The G50 held-queue disposition dialog (verified `choice` routing: the desktop
+ * asks the client to disposition the queue — clear it or keep it — via
+ * sendText/sendGoalCommand.heldQueueDisposition). ONE shared composable: the
+ * composer's dispatch gate and the context sheet's Set-goal gate render the SAME
+ * ask with the SAME copy (the ids themselves are read by the caller at answer
+ * time — the F-P19-A re-read-at-answer contract).
+ */
+@Composable
+fun HeldQueueDispositionDialog(
+    onDismiss: () -> Unit,
+    onClear: () -> Unit,
+    onKeep: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.queue_held_title)) },
+        text = { Text(stringResource(R.string.queue_held_body)) },
+        confirmButton = {
+            ZCodeButton(
+                onClick = onClear,
+                modifier = Modifier.testTag("composer_disposition_clear"),
+            ) { Text(stringResource(R.string.queue_clear_send)) }
+        },
+        dismissButton = {
+            ZCodeOutlinedButton(
+                onClick = onKeep,
+                modifier = Modifier.testTag("composer_disposition_keep"),
+            ) { Text(stringResource(R.string.queue_keep_send)) }
+        },
+    )
 }
 
 /** §14.2/§14.3 pending sends — truthful state; retry is user-gated (INV-4). */

@@ -58,7 +58,12 @@ fun SessionContextSheet(
     onShareTranscript: () -> Unit = {},
     modifier: Modifier = Modifier,
     // ---- G26 (vc51): the goal affordances (the desktop's add-goal + pause/resume) ----
-    onSetGoal: (objective: String) -> Unit = {},
+    /**
+     * F-P20-A (pass-0 Phase 6): the sheet's goal send carries the answered
+     * held-queue trio — [onSetGoal] fires only AFTER the choice gate below (nulls
+     * = no held queue stood; the legacy trio-less shape).
+     */
+    onSetGoal: (objective: String, heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?) -> Unit = { _, _, _ -> },
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
     /**
@@ -74,6 +79,10 @@ fun SessionContextSheet(
      */
     taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
 ) {
+    // F-P20-A: the sheet's choice gate — the objective typed in the Set-goal dialog,
+    // held while the disposition dialog asks (a dismissal drops it).
+    var pendingGoalObjective by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var goalDispositionDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("session_context_sheet")) {
         // F-27-C (pass 31/33, the bottom-edge clip family): the sheet is edge-to-edge —
         // without a nav-bar inset the footer chip row painted UNDER the 3-button bar
@@ -142,10 +151,45 @@ fun SessionContextSheet(
             // G26: the desktop offers add-goal on the composer menu for goal-less
             // sessions (ChatPromptActionMenu.tsx:30) — the sheet's Set-goal row.
             if (sessionState?.goal == null) {
+                // F-P20-A (pass-0 Phase 6): the sheet's goal send rides the SAME
+                // sendGoalCommand admission gate as the composer — under a CHOICE
+                // routing (the held-queue choice admission) the disposition dialog
+                // fires BEFORE any wire and its answer rides the goal. The pass-20
+                // receipt: the ungated sheet goal was structurally refused
+                // (heldQueueDispositionRequired) with only the generic ERROR face.
+                val heldQueue = sessionState?.inputRouting?.mode ==
+                    com.zcode.android.domain.model.InputRouting.Mode.CHOICE
+                fun heldQueueIds(): List<String>? =
+                    sessionState?.queue?.items?.map { it.queueItemId }?.takeIf { it.isNotEmpty() }
                 SetGoalRow(
-                    onSet = onSetGoal,
+                    onSet = { objective ->
+                        if (heldQueue) {
+                            pendingGoalObjective = objective
+                            goalDispositionDialog = true
+                        } else {
+                            onSetGoal(objective, null, null)
+                        }
+                    },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp),
                 )
+                if (goalDispositionDialog) {
+                    HeldQueueDispositionDialog(
+                        onDismiss = {
+                            goalDispositionDialog = false
+                            pendingGoalObjective = null // a dismissed answer never sends
+                        },
+                        onClear = {
+                            goalDispositionDialog = false
+                            onSetGoal(pendingGoalObjective.orEmpty(), "clearQueueAndSend", heldQueueIds())
+                            pendingGoalObjective = null
+                        },
+                        onKeep = {
+                            goalDispositionDialog = false
+                            onSetGoal(pendingGoalObjective.orEmpty(), "keepQueueAndSend", heldQueueIds())
+                            pendingGoalObjective = null
+                        },
+                    )
+                }
             }
             sessionState?.plan?.let { plan ->
                 PlanPanel(plan, modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp))

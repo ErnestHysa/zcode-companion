@@ -985,6 +985,8 @@ private fun ConversationRoute(
         onRetryOlder = vm::retryOlder,
         onDraftChange = vm::onDraftChange,
         onSend = vm::send,
+        // F-P20-A: a dismissed disposition answer drops a staged sheet goal.
+        onHeldQueueDismissed = vm::cancelGoalForChoice,
         onStop = vm::stopGeneration,
         onRetrySend = vm::retryPendingSend,
         onDismissSendNotice = vm::dismissSendNotice,

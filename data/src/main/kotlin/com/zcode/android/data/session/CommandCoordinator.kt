@@ -229,14 +229,29 @@ class CommandCoordinator(
 
     /**
      * `/goal <objective>` (and `/goal replace <objective>`) — `sendGoalCommand
-     * {text, displayText}`; not CAS-guarded. displayText carries the ORIGINAL
-     * slash text (the desktop's row-render contract, SessionPane.tsx:2459-2470).
+     * {text, displayText}`; no baseRevision CAS (verified set), but the host runs
+     * the SAME held-queue admission gate as sendText (pass-20 W.B: under `choice`
+     * a disposition-less goal is refused with `heldQueueDispositionRequired`) —
+     * F-P20-A (pass-0 Phase 6): the optional trio ([heldQueueDisposition] +
+     * [expectedHeldQueueItemIds]) rides the payload when the caller answered the
+     * held-queue confirmation; the no-trio shape stays byte-identical for legacy
+     * callers. displayText carries the ORIGINAL slash text (the desktop's
+     * row-render contract, SessionPane.tsx:2459-2470).
      */
-    suspend fun sendGoalCommand(sessionId: String, objective: String, displayText: String): Outcome =
-        simpleCommand("sendGoalCommand", sessionId, buildJsonObject {
-            put("text", objective)
-            put("displayText", displayText)
-        })
+    suspend fun sendGoalCommand(
+        sessionId: String,
+        objective: String,
+        displayText: String,
+        heldQueueDisposition: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+    ): Outcome = simpleCommand("sendGoalCommand", sessionId, buildJsonObject {
+        put("text", objective)
+        put("displayText", displayText)
+        heldQueueDisposition?.let { put("heldQueueDisposition", it) }
+        expectedHeldQueueItemIds?.let { ids ->
+            putJsonArray("expectedHeldQueueItemIds") { ids.forEach { add(JsonPrimitive(it)) } }
+        }
+    })
 
     /** `/goal resume` — `resumeGoal {}` IS CAS-guarded (verified set §5). */
     suspend fun resumeGoal(sessionId: String, baseRevision: Long?): Outcome =

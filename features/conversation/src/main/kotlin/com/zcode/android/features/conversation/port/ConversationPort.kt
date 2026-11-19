@@ -239,7 +239,21 @@ interface ConversationPort {
 
     /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume + pause. */
     suspend fun compact(taskId: String): SendOutcome
-    suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
+
+    /**
+     * F-P20-A (pass-0 Phase 6): the goal send carries the OPTIONAL held-queue trio
+     * — the host's sendGoalCommand handler rides the same `choice` admission gate
+     * as sendText, so a goal answered through the disposition dialog forwards
+     * [heldQueueDisposition] + [expectedHeldQueueItemIds] (null = the legacy
+     * trio-less shape, byte-identical on the wire).
+     */
+    suspend fun sendGoal(
+        taskId: String,
+        objective: String,
+        displayText: String,
+        heldQueueDisposition: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+    ): SendOutcome
     suspend fun resumeGoal(taskId: String): SendOutcome
 
     /**

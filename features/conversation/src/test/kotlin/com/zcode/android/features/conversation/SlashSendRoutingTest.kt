@@ -24,6 +24,8 @@ class SlashSendRoutingTest {
     private class RoutingPort : Phase7FakePort() {
         val calls = mutableListOf<String>()
         val promptTexts = mutableListOf<String>()
+        /** F-P20-A: the goal trio the VM forwarded (disposition, ids). */
+        val goalTrios = mutableListOf<Pair<String?, List<String>?>>()
         var outcome = ConversationPort.SendOutcome.ACCEPTED
 
         override suspend fun compact(taskId: String): ConversationPort.SendOutcome {
@@ -31,8 +33,12 @@ class SlashSendRoutingTest {
             return outcome
         }
 
-        override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome {
+        override suspend fun sendGoal(
+            taskId: String, objective: String, displayText: String,
+            heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?,
+        ): ConversationPort.SendOutcome {
             calls += "sendGoal:$objective"
+            goalTrios += heldQueueDisposition to expectedHeldQueueItemIds
             return outcome
         }
 

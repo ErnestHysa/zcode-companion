@@ -15,7 +15,7 @@ import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ui.ComposerBar
 import com.zcode.android.features.conversation.ui.SessionContextSheet
-import org.junit.Assert.assertEquals
+import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -257,7 +257,7 @@ class Pass0Phase6HeldQueueGuardUiTest {
         rule.onNodeWithTag("composer_disposition_keep").performClick()
         rule.waitForIdle()
         assertEquals(
-            listOf(Triple("finish the ledger", "keepQueueAndSend", listOf("q-1"))),
+            listOf(Triple<String, String?, List<String>?>("finish the ledger", "keepQueueAndSend", listOf("q-1"))),
             sets,
             "the sheet's answered trio rides the goal send — the pass-20 structural refusal is gated",
         )
@@ -291,7 +291,7 @@ class Pass0Phase6HeldQueueGuardUiTest {
         rule.onNodeWithTag("goal_set_confirm").performClick()
         rule.onNodeWithTag("composer_disposition_clear").performClick()
         assertEquals(
-            listOf(Triple("goal two", "clearQueueAndSend", listOf("q-1"))),
+            listOf(Triple<String, String?, List<String>?>("goal two", "clearQueueAndSend", listOf("q-1"))),
             sets,
         )
     }
@@ -317,6 +317,6 @@ class Pass0Phase6HeldQueueGuardUiTest {
         rule.onNodeWithTag("goal_set_confirm").performClick()
         rule.waitForIdle()
         rule.onAllNodesWithTag("composer_disposition_keep").assertCountEquals(0)
-        assertEquals(listOf(Triple("simple goal", null, null)), sets)
+        assertEquals(listOf(Triple<String, String?, List<String>?>("simple goal", null, null)), sets)
     }
 }

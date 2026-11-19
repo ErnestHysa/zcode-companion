@@ -517,9 +517,22 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.compact(taskId))
     }
 
-    override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome {
+    /** F-P20-A: the goal send forwards the answered held-queue trio (nulls = legacy shape). */
+    override suspend fun sendGoal(
+        taskId: String,
+        objective: String,
+        displayText: String,
+        heldQueueDisposition: String?,
+        expectedHeldQueueItemIds: List<String>?,
+    ): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
-        return mapOutcome(coordinator.sendGoalCommand(taskId, objective, displayText))
+        return mapOutcome(
+            coordinator.sendGoalCommand(
+                taskId, objective, displayText,
+                heldQueueDisposition = heldQueueDisposition,
+                expectedHeldQueueItemIds = expectedHeldQueueItemIds,
+            ),
+        )
     }
 
     override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome {

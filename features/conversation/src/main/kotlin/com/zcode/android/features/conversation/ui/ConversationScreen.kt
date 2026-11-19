@@ -109,6 +109,8 @@ fun ConversationScreen(
     onDraftChange: (String) -> Unit,
     /** G49+G50: the send trio — disposition, one-shot delivery override, CAS queue ids. */
     onSend: (heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?) -> Unit,
+    /** F-P20-A: the disposition dialog was dismissed without answering (drop a staged sheet goal). */
+    onHeldQueueDismissed: () -> Unit = {},
     onStop: () -> Unit,
     onRetrySend: (commandId: String) -> Unit,
     onDismissSendNotice: () -> Unit,
@@ -217,7 +219,8 @@ fun ConversationScreen(
     backgroundOutputProvider: (suspend (workId: String) -> Any?)? = null,
     onCancelBackgroundWork: (workId: String) -> Unit = {},
     // ---- G26 (vc51): the goal affordances on the context sheet ----
-    onSetGoal: (objective: String) -> Unit = {},
+    /** F-P20-A: the sheet's gated goal send — the answered held-queue trio rides. */
+    onSetGoal: (objective: String, heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?) -> Unit = { _, _, _ -> },
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
     // ---- G6 (vc51): the interaction snooze (null = the card hides the affordance) ----
@@ -698,6 +701,7 @@ fun ConversationScreen(
                 state = state,
                 onDraftChange = onDraftChange,
                 onSend = onSend,
+                onHeldQueueDismissed = onHeldQueueDismissed,
                 onStop = onStop,
                 onRetrySend = onRetrySend,
                 onDismissNotice = onDismissSendNotice,
@@ -744,7 +748,8 @@ private fun Header(
     /** Phase 5C (A3.16): share the transcript via the Android system sheet. */
     onShareTranscript: () -> Unit = {},
     // ---- G26 (vc51): the goal affordances on the context sheet ----
-    onSetGoal: (objective: String) -> Unit = {},
+    /** F-P20-A: the sheet's gated goal send — the answered held-queue trio rides. */
+    onSetGoal: (objective: String, heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?) -> Unit = { _, _, _ -> },
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
     // ---- G66 (vc52 Phase 13): the error card's switch-model request (a rise expands the chips) ----

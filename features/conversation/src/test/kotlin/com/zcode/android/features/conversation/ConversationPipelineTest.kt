@@ -180,7 +180,10 @@ class ConversationViewModelTest {
             override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
                 MutableStateFlow(emptyList())
             override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
-            override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun sendGoal(
+            taskId: String, objective: String, displayText: String,
+            heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?,
+        ): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
             override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
             override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
             override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
@@ -388,7 +391,10 @@ open class Phase7FakePort : ConversationPort {
         override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
             kotlinx.coroutines.flow.MutableStateFlow(emptyList())
         override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
-        override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun sendGoal(
+            taskId: String, objective: String, displayText: String,
+            heldQueueDisposition: String?, expectedHeldQueueItemIds: List<String>?,
+        ): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
         override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
         override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
     override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)

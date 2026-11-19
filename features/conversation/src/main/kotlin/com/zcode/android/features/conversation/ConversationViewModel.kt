@@ -509,6 +509,16 @@ class ConversationViewModel(
         /** G50 (vc52 Phase 13): the CAS queue ids beside the disposition choice. */
         expectedHeldQueueItemIds: List<String>? = null,
     ) {
+        // F-P20-A (pass-0 Phase 6): the sheet's gated goal stashed while the
+        // disposition dialog was pending routes the ANSWER to the goal, not the
+        // unrelated composer draft. A non-null disposition only ever arrives from a
+        // dialog answer (dispatchSend passes nulls otherwise), so a plain draft send
+        // can never be misrouted into the stashed goal.
+        pendingGoalObjective?.let { goal ->
+            pendingGoalObjective = null
+            scope.launch { sendGoalWithChoice(goal, heldQueueDisposition, expectedHeldQueueItemIds) }
+            return
+        }
         val text = _draft.value
         // N-BH-1 (vc52 Phase 9): a READY staged attachment is submittable on its own
         // (the GAP-A9 desktop contract — hasDraftToSubmit counts attachments; the wire
@@ -531,7 +541,16 @@ class ConversationViewModel(
                     acceptedClearsDraft = true,
                 )
                 is SlashDispatch.SendGoal -> sendSlash(
-                    { port.sendGoal(taskId, dispatch.objective, dispatch.displayText) },
+                    // F-P20-A (pass-0 Phase 6): the composer's G50 dialog already ran
+                    // for slash sends (the pass-21 receipt) — its answer rides the
+                    // goal wire now instead of being silently discarded (the host's
+                    // sendGoalCommand admission consumes the same trio as sendText).
+                    {
+                        port.sendGoal(
+                            taskId, dispatch.objective, dispatch.displayText,
+                            heldQueueDisposition, expectedHeldQueueItemIds,
+                        )
+                    },
                     text,
                     failureNotice = "The goal update was refused by the desktop.",
                     failureKey = SendNotice.Key.GOAL_REFUSED,
@@ -676,6 +695,32 @@ class ConversationViewModel(
         _heldQueueReconfirmation.value += 1
     }
 
+    // ---------------------------------------------------------------- F-P20-A (pass-0 Phase 6): the sheet's held-queue goal gate
+
+    /**
+     * The sheet goal awaiting its held-queue disposition choice (the sheet bypasses
+     * [send], so its choice flows through the stash + the composer's re-armed
+     * dialog). Non-null = the next dialog answer sends THE GOAL, never the draft.
+     */
+    private var pendingGoalObjective: String? = null
+
+    /**
+     * F-P20-A sheet half: the context sheet's Set-goal under a CHOICE routing — the
+     * objective is stashed and the disposition dialog re-arms (the desktop
+     * pre-gates its goal send through the confirmation dialog, W.B). The user's
+     * answer rides [send] into [sendGoalWithChoice]; a dismissal drops the stash.
+     */
+    fun stageGoalForChoice(objective: String) {
+        if (objective.isBlank()) return
+        pendingGoalObjective = objective
+        requestHeldQueueReconfirmation()
+    }
+
+    /** The dialog was dismissed without answering — the staged goal never sends. */
+    fun cancelGoalForChoice() {
+        pendingGoalObjective = null
+    }
+
     /** Refusal path: NOTHING goes on the wire, the draft is preserved (desktop warn parity). */
     private fun refuseSlash(notice: String) {
         _sendNotice.value = SendNotice(notice, SendNotice.Kind.WARNING)
@@ -686,17 +731,39 @@ class ConversationViewModel(
     /**
      * The sheet's "Set goal" affordance — the SAME wire path the /goal slash rides
      * (sendGoalCommand), so the refusal banners (A13's notices) fire identically.
+     * F-P20-A: the sheet's choice gate hands the answered trio here; nulls keep the
+     * legacy trio-less shape. The sheet UI itself gates BEFORE the wire
+     * (SessionContextSheet's disposition dialog) — this signature only carries what
+     * the user answered.
      */
-    fun setGoal(objective: String) {
+    fun setGoal(
+        objective: String,
+        heldQueueDisposition: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+    ) {
         if (objective.isBlank()) return
         scope.launch {
-            when (port.sendGoal(taskId, objective, "/goal $objective")) {
-                ConversationPort.SendOutcome.ACCEPTED -> Unit
-                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice("Offline — the goal was not sent.", SendNotice.Kind.WARNING, SendNotice.Key.GOAL_REFUSED)
-                else ->
-                    _sendNotice.value = SendNotice("The goal update was refused by the desktop.", SendNotice.Kind.ERROR, SendNotice.Key.GOAL_REFUSED)
-            }
+            sendGoalWithChoice(objective, heldQueueDisposition, expectedHeldQueueItemIds)
+        }
+    }
+
+    /** F-P20-A: the goal send with the (optional) answered trio + the typed faces. */
+    private suspend fun sendGoalWithChoice(
+        objective: String,
+        heldQueueDisposition: String?,
+        expectedHeldQueueItemIds: List<String>?,
+    ) {
+        when (port.sendGoal(taskId, objective, "/goal $objective", heldQueueDisposition, expectedHeldQueueItemIds)) {
+            ConversationPort.SendOutcome.ACCEPTED -> Unit
+            ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                _sendNotice.value = SendNotice("Offline — the goal was not sent.", SendNotice.Kind.WARNING, SendNotice.Key.GOAL_REFUSED)
+            ConversationPort.SendOutcome.CONFIRMATION_REQUIRED ->
+                // F-P19-A/F-P20-A: the goal's own CAS mismatch — re-stash and re-open
+                // the confirmation (the desktop's slash-path re-open parity); the
+                // answer re-sends THE GOAL with fresh ids.
+                stageGoalForChoice(objective)
+            else ->
+                _sendNotice.value = SendNotice("The goal update was refused by the desktop.", SendNotice.Kind.ERROR, SendNotice.Key.GOAL_REFUSED)
         }
     }
 

@@ -50,7 +50,7 @@ class GoalAffordancesUiTest {
                     plans = null,
                     sessionStatusProvider = { null },
                     onDismiss = {},
-                    onSetGoal = { setGoals.add(it) },
+                    onSetGoal = { objective, _, _ -> setGoals.add(objective) },
                 )
             }
         }
