@@ -43,7 +43,10 @@ import org.robolectric.annotation.Config
  * legacy shape stays.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30], qualifiers = "w411dp-h891dp")
+// NO w*dp qualifier: a width-qualified Robolectric config never idles the M3
+// dialog-over-sheet stack (the phase-5 rig learning — GoalAffordancesUiTest's
+// precedent); the default device profile renders both dialogs and idles.
+@Config(sdk = [30])
 class Pass0Phase6HeldQueueGuardUiTest {
 
     @get:Rule
