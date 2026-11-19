@@ -75,8 +75,9 @@ class Pass0Phase8LiveWindowSubtitleTest {
         rule.waitForIdle()
         rule.onNodeWithTag("settings_live_window").performClick()
         rule.waitForIdle()
-        // The picker dialog is up, then choose 60 minutes.
-        rule.onNodeWithText("Live-connection window").assertExists()
+        // The picker dialog is up: "60 minutes" is dialog-only copy (the row's
+        // subtitle reads "30 minutes" until the pick lands).
+        rule.onNodeWithText("60 minutes").assertExists()
         rule.onNodeWithText("60 minutes").performClick()
         rule.waitForIdle()
         // THE receipted face: the subtitle must recompose in-session (no re-entry).
