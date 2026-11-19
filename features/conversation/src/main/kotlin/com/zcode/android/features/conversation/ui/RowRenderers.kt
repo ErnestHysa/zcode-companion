@@ -1791,6 +1791,26 @@ fun toolMetaLine(row: ConversationRow.ToolCall): String {
 }
 
 /**
+ * N-BJ-1 (pass-0 Phase 7): the CAPPED thumbnail decode. The report's red block was
+ * the render size (G28-era fixed 132×96dp frame); the remaining uncapped half was
+ * the DECODE — a 4000×3000 photo decoded at full resolution (a ~46 MB ARGB bitmap)
+ * to paint a 132dp window. The sampler bounds the max dimension via inSampleSize
+ * (powers of two, aspect preserved by construction; the 1×1 seed stays exact —
+ * never upscaled). Garbage/empty bytes decode to null (the honest-empty family).
+ */
+internal fun decodeAttachmentThumbnail(bytes: ByteArray, maxDim: Int = 512): android.graphics.Bitmap? = runCatching {
+    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= maxDim || bounds.outHeight / (sample * 2) >= maxDim) sample *= 2
+    android.graphics.BitmapFactory.decodeByteArray(
+        bytes, 0, bytes.size,
+        android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
+    )
+}.getOrNull()
+
+/**
  * F-P11-A (pass-0 Phase 7): the image load is TRI-STATE — Loading / Ready /
  * Unavailable. produceState's `runCatching { load(att) }.getOrNull()` used to
  * collapse a FAILED read into the same `null` as a still-loading one, so a failed
@@ -1842,9 +1862,9 @@ private fun AttachmentView(
     }
     if (isImage) {
         val bitmap = (loadState as? AttachmentLoad.Ready)?.bytes?.let { b ->
-            runCatching {
-                android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)
-            }.getOrNull()?.asImageBitmap()
+            // N-BJ-1: the capped sampler — never a full-resolution decode for the
+            // 132×96dp window.
+            decodeAttachmentThumbnail(b)?.asImageBitmap()
         }
         Surface(
             shape = MaterialTheme.shapes.small,
