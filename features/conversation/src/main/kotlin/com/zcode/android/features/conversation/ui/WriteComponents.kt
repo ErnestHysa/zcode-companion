@@ -1833,6 +1833,8 @@ fun sendNoticeText(notice: SendNotice): String {
     val res = when (key) {
         SendNotice.Key.SWITCH_OFFLINE -> R.string.notice_switch_offline
         SendNotice.Key.SESSION_CHANGED -> R.string.notice_session_changed
+        // N-BT-1 (pass-0 Phase 7): the row-action stale — its own copy, no switch word.
+        SendNotice.Key.ROW_ACTION_STALE -> R.string.notice_row_action_stale
         SendNotice.Key.SWITCH_REFUSED -> R.string.notice_switch_refused
         SendNotice.Key.MODEL_SWITCH_REFUSED -> R.string.notice_model_switch_refused
         SendNotice.Key.ATTACHMENT_TOO_LARGE -> R.string.notice_attachment_too_large

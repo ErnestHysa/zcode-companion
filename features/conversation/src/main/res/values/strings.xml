@@ -234,6 +234,9 @@
     <string name="row_turn_changes">%1$s +%2$d −%3$d · view</string>
     <string name="notice_switch_offline">Offline — the switch was not sent. Nothing changed.</string>
     <string name="notice_session_changed">The session changed on the desktop — try the switch again.</string>
+    <!-- N-BT-1 (pass-0 Phase 7): the row-action stale (feedback/retry/fork/rewind) —
+         the row actions are not switches, so the honest copy invites a plain retry. -->
+    <string name="notice_row_action_stale">The session changed on the desktop — try again.</string>
     <string name="notice_switch_refused">The desktop refused the switch — nothing changed.</string>
     <string name="notice_model_switch_refused">The desktop refused the model switch — nothing changed.</string>
     <string name="notice_attachment_too_large">Attachment is over the 20 MB desktop limit — not sent.</string>

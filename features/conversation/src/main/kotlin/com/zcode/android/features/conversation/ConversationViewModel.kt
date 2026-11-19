@@ -122,6 +122,11 @@ data class SendNotice(
         // N-BS-1 (pass-0 Phase 7): the mixed-state send's per-send exclusion signal
         // (a ✓ ready chip rode the payload; the ✗ failed chip was silently dropped).
         ATTACHMENT_SENT_WITHOUT,
+        // N-BT-1 (pass-0 Phase 7): the row-action stale carries its OWN key — the
+        // shared SESSION_CHANGED key renders the switch copy BY KEY (the renderer
+        // discards the per-path message), so a stale feedback/retry/fork/rewind
+        // rendered "…— try the switch again.".
+        ROW_ACTION_STALE,
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED, GOAL_PAUSE_REFUSED,
         // Phase 4A row actions
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
@@ -1371,7 +1376,11 @@ class ConversationViewModel(
             ConversationPort.SendOutcome.NOT_READY ->
                 _sendNotice.value = SendNotice(localGateText, SendNotice.Kind.WARNING, localGateKey)
             ConversationPort.SendOutcome.STALE ->
-                _sendNotice.value = SendNotice("The session changed on the desktop — try again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
+                // N-BT-1 (pass-0 Phase 7): the row-action stale carries its OWN key —
+                // the shared SESSION_CHANGED key renders "…— try the SWITCH again."
+                // BY KEY and discards this per-path message; the row-action copy
+                // ("…— try again.") needs its own resource.
+                _sendNotice.value = SendNotice("The session changed on the desktop — try again.", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_STALE)
             else -> _sendNotice.value = SendNotice(refusedText, SendNotice.Kind.ERROR, refusedKey)
         }
     }
