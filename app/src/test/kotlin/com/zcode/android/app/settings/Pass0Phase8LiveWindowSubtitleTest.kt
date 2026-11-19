@@ -7,7 +7,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.app.AppContainer
 import com.zcode.android.core.notifications.LiveConnectionService
@@ -33,7 +32,7 @@ import org.robolectric.annotation.Config
 class Pass0Phase8LiveWindowSubtitleTest {
 
     @get:Rule
-    val rule = createAndroidComposeRule<FragmentActivity>()
+    val rule = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     /** The service must be "running" or the row is disabled (no clickable — the pick is unreachable). */
     private fun markServiceRunning() {

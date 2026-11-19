@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.AppUsageSnapshot
@@ -42,7 +41,7 @@ import java.io.File
 class Pass0Phase8UsageGeometryTest {
 
     @get:Rule
-    val rule = createAndroidComposeRule<FragmentActivity>()
+    val rule = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     private fun fixtureUsage(name: String): AppUsageSnapshot {
         val file = sequenceOf(File("."), File(".."), File("../.."), File("../../.."))
