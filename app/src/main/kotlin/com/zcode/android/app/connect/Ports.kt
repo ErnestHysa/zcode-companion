@@ -1028,6 +1028,13 @@ class DefaultConversationPort(
             ConversationPort.SendOutcome.ACCEPTED
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
+        } catch (e: com.zcode.android.core.transport.StaleRevisionFailure) {
+            // N-BQ-1 (pass-0 Phase 6): the protocol plane's -32009 revision mismatch —
+            // the typed stale verdict (previously collapsed to FAILED, which made the
+            // enumerated SESSION_CHANGED branch dead code; three live receipts all
+            // rendered the generic refusal). The honest try-again face.
+            hub.log.warn("port.setThoughtLevel", "stale revision: ${e.error.developerDiagnostic.take(120)}")
+            ConversationPort.SendOutcome.STALE
         } catch (e: Exception) {
             hub.log.warn("port.setThoughtLevel", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             ConversationPort.SendOutcome.FAILED

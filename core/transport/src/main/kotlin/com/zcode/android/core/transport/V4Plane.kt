@@ -30,6 +30,36 @@ import kotlinx.serialization.json.buildJsonObject
 open class TransportFailure(val error: AppError) : Exception(error.developerDiagnostic)
 
 /**
+ * N-BQ-1 (pass-0 Phase 6): the PROTOCOL plane's revision-mismatch verdict — the
+ * host's `FQ` CAS check answered the JSON-RPC error `Dl(-32009, "Session state
+ * revision mismatch", {actualRevision, expectedRevision})` (the sentinel error
+ * code; the verbatim message is the envelope fallback). An AUTHORITATIVE stale
+ * verdict (serverSpoke — the server DID speak, never the UNKNOWN/retry class):
+ * callers map it to the typed try-again face, never the generic refusal. The
+ * three live receipts (high/medium/xhigh) rendered the generic FAILED face
+ * because every ChannelError collapsed into taskRejected(detail).
+ */
+class StaleRevisionFailure(error: AppError) : TransportFailure(error)
+
+/** The host's pinned protocol-plane CAS identities (Y.B: `Dl(-32009, …)` — zcode.cjs sPi/FQ). */
+private const val PROTOCOL_REVISION_MISMATCH_CODE = -32009
+private const val PROTOCOL_REVISION_MISMATCH_MESSAGE = "Session state revision mismatch"
+
+/**
+ * N-BQ-1: the -32009 revision-mismatch identity — the pinned JSON-RPC error code,
+ * with the verbatim host message as the envelope-shape fallback (a body without a
+ * code field still carries the message; the mock's arm exercises both shapes).
+ */
+internal fun isRevisionMismatch(e: ChannelSession.Failure.ChannelError): Boolean {
+    val obj = (e.body as? RpcValue.Obj)?.json as? JsonObject
+    if (obj != null) {
+        val code = (obj["code"] as? JsonPrimitive)?.content?.toIntOrNull()
+        if (code == PROTOCOL_REVISION_MISMATCH_CODE) return true
+    }
+    return e.detail == PROTOCOL_REVISION_MISMATCH_MESSAGE
+}
+
+/**
  * The v4 conversation + service-channel surface (docs/protocol/v4-wire.md §4–§10,
  * docs/protocol/phase9-channels.md) — byte-identical on BOTH transports (§8.3.1:
  * "both share ~90% of the stack"). Implemented by [RelayTransport] (over relay
@@ -626,6 +656,16 @@ internal class ChannelV4Plane(
             bound().warn("v4.call", "$name TIMEOUT after ${clock() - started}ms")
             throw TransportFailure(ErrorMapping.timeout(name, timeouts.v4CallTimeoutMs))
         } catch (e: ChannelSession.Failure.ChannelError) {
+            // N-BQ-1 (pass-0 Phase 6): the protocol plane's CAS verdict — the host's
+            // FQ revision check answers Dl(-32009, "Session state revision mismatch")
+            // as a JSON-RPC error body, never a {status:"stale"} ack. The typed
+            // identity propagates (an authoritative stale verdict, serverSpoke) so
+            // the effort switch renders its honest try-again face; every other
+            // server-side fault keeps the task-class rejection.
+            if (isRevisionMismatch(e)) {
+                bound().warn("v4.call", "$name channel error: revision mismatch (-32009)")
+                throw StaleRevisionFailure(ErrorMapping.taskRejected(e.detail))
+            }
             // Server-side fault (fault.* namespace) — task-class rejection, user-retry.
             bound().warn("v4.call", "$name channel error: ${e.detail.take(100)}")
             throw TransportFailure(ErrorMapping.taskRejected(e.detail))

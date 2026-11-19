@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.junit.Assert.assertEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
