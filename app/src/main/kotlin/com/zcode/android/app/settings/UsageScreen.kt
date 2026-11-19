@@ -141,9 +141,11 @@ fun UsageScreen(
             modifier = Modifier.padding(inner).testTag("usage_pull"),
         ) {
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(inner),
+            // N-BP-1: the PullToRefreshBox above already applies the Scaffold `inner`
+            // padding — the second application opened a ~400px dead band under the top
+            // bar that ALSO swallowed every drag started inside it (8 receipted
+            // attempts, zero re-queries). All sibling viewers apply it exactly once.
+            Modifier.fillMaxSize(),
         ) {
             if (loading && snapshot == null && error == null) {
                 LoadingSkeleton(Modifier.fillMaxSize().testTag("usage_loading"), rows = 4)
