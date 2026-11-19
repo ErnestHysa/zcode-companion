@@ -1038,8 +1038,14 @@ fun ComposerBar(
             // ActivityNotFoundException). A picker arm must never kill the process:
             // every launch is guarded and degrades to the inline camera-unavailable copy.
             var attachError by remember { mutableStateOf(false) }
+            // F-P8-F (pass-0 Phase 7): the ASYNC verdict class — the TakePicture result
+            // arriving ok=false (the API-36 camera denial: the camera app returns
+            // CANCELED on its own denial/failure) used to be silently dropped. The
+            // honest face arms here, never a silent fall-through.
+            var cameraNoPhoto by remember { mutableStateOf(false) }
             fun launchPick(launch: () -> Unit) {
                 attachError = false
+                cameraNoPhoto = false
                 runCatching { launch() }.onFailure { attachError = true }
             }
             val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -1053,7 +1059,15 @@ fun ComposerBar(
             val cameraUri = remember { java.util.concurrent.atomic.AtomicReference<android.net.Uri?>(null) }
             val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
-            ) { ok -> if (ok) cameraUri.get()?.let { onPicked(it) } }
+            ) { ok ->
+                if (ok) {
+                    cameraUri.get()?.let { onPicked(it) }
+                } else if (cameraUri.get() != null) {
+                    // F-P8-F: a launch WE armed returned no photo — the camera app
+                    // denied/failed the capture. The typed honest face, never silence.
+                    cameraNoPhoto = true
+                }
+            }
             val cameraItem = remember {
                 runCatching {
                     val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
@@ -1553,6 +1567,16 @@ fun ComposerBar(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.testTag("composer_attach_error"),
+                )
+            }
+            if (cameraNoPhoto) {
+                // F-P8-F: the async-verdict face — the camera app returned no photo
+                // (denied/failed capture), a DIFFERENT class from the A8 launch throw.
+                Text(
+                    text = stringResource(R.string.composer_camera_no_photo),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("composer_camera_no_photo"),
                 )
             }
             when (voiceError) {

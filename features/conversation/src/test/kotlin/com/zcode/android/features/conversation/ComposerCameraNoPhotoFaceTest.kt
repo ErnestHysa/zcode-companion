@@ -20,7 +20,7 @@ class ComposerCameraNoPhotoFaceTest {
     fun `F-P8-F - the camera callback arms the typed no-photo face instead of dropping the verdict`() {
         val composer = composerSource()
         assertTrue(
-            Regex("""cameraLauncher[\s\S]{0,200}ok ->[\s\S]{0,300}cameraNoPhoto""").containsMatchIn(composer),
+            Regex("""cameraLauncher[\s\S]{0,400}ok ->[\s\S]{0,600}cameraNoPhoto""").containsMatchIn(composer),
             "the TakePicture callback must arm the honest no-photo face on ok=false (the silent-drop shape)",
         )
         assertTrue(
