@@ -11499,7 +11499,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ✓ DONE 2026-11-18 |
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ✓ DONE 2026-11-18 |
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ✓ DONE 2026-11-18 |
-| 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ☐ |
+| 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-19 |
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ☐ |
 | 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ☐ |
 | 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ☐ |
@@ -11904,7 +11904,7 @@ schedule chips fit (N-BK-2); both icon buttons labeled (N-BL-1).
 Theme: the send-ack guard family — one pair per rule 10, plus the effort switch's dead stale
 branch. Order inside the phase: **F-P19-A → F-P20-A (one pair) → N-BQ-1.**
 
-- [ ] **F-P19-A (P3) — the G50 CAS-mismatch face is desktop-divergent:** on
+- [x] **F-P19-A (P3) — the G50 CAS-mismatch face is desktop-divergent:** on
   `guard.heldQueueConfirmationStale` (host ack `{status:"failed"}` — set-equality CAS via
   `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids
   (`confirmationRequired`); the phone maps the failed ack to the generic refusal ERROR notice
@@ -11913,7 +11913,8 @@ branch. Order inside the phase: **F-P19-A → F-P20-A (one pair) → N-BQ-1.**
   (desktop parity) or minimally a distinct notice. **Accept:** the guard.* grep pin + the V.C
   static shapes (outbox FAILED_TERMINAL + preserved draft); a live leg under
   MOCK_QUEUE_GHOST_APPEND_MS re-opens the confirmation (or renders the distinct notice).
-- [ ] **F-P20-A (P3, ONE PAIR with F-P19-A) — the phone's goal sends are structurally refused
+  **→ FIXED 2026-11-19 `428c329d`** (see the Phase-6 fix-round record below).
+- [x] **F-P20-A (P3, ONE PAIR with F-P19-A) — the phone's goal sends are structurally refused
   under the desktop's choice admission:** the host's `sendGoalCommand` rides the SAME
   `applyHeldQueueDisposition` gate as sendText, but the phone's goal payload is
   `{text, displayText}` only (`CommandCoordinator.kt:220-224`); the composer half is pure
@@ -11924,18 +11925,25 @@ branch. Order inside the phase: **F-P19-A → F-P20-A (one pair) → N-BQ-1.**
   half = gate on the choice state or a distinct notice keyed on the reasonCode. **Accept:**
   the outbox rows carry the trio for goal-sheet + composer-slash + compact sends (the W.B/W.C
   pins); the G50 answer is never discarded; 4 stamps stand as the receipt base.
-- [ ] **N-BQ-1 (P4) — the effort switch's typed stale face is DEAD CODE:** the protocol
+  **→ FIXED 2026-11-19 `cd8cfaf0`** (goal-sheet + composer-slash carry the trio; compact
+  takes the fix line's "stop asking" arm — desktop parity, adjudicated in the record below).
+- [x] **N-BQ-1 (P4) — the effort switch's typed stale face is DEAD CODE:** the protocol
   method's host layer answers a JSON-RPC ERROR on revision mismatch (`Dl -32009`), the phone
   collapses any throw to FAILED (`Ports.kt:1000-1013`), and the enumerated SESSION_CHANGED
   branch (`ConversationViewModel.kt:336`) can never fire — three levels live-receipted
   (high/medium/xhigh) all rendering the generic face. **Fix:** map the protocol-plane error by
   its revision-mismatch identity so STALE propagates (or re-shape the call). **Accept:** a
   transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face
-  after the fix. (3 stamps.)
+  after the fix. (3 stamps.) **→ FIXED 2026-11-19 `1e9531a2`** (the dead branch renders live
+  under the -32009 arm — receipt below).
 
-**Phase 6 exit gate: ☐** fresh rig under the queue arms: CAS-mismatch re-opens the
-confirmation with fresh ids (F-P19-A); a goal send through ALL THREE entry points carries the
-trio (F-P20-A); the effort switch renders the honest stale face under the -32009 arm (N-BQ-1).
+**Phase 6 exit gate: ✓ PASSED 2026-11-19 01:53 (receipts in the Phase-6 fix-round record below).**
+fresh rig under the queue arms: CAS-mismatch re-opens the confirmation with fresh ids
+(F-P19-A — w12/a2-reopen.png, the preserved draft in frame); a goal send through ALL THREE
+entry points carries the trio (F-P20-A — goal-sheet + composer-slash payloadJson-verified;
+compact ships as the "stop asking" arm, no ask no discard); the effort switch renders the
+honest stale face under the -32009 arm (N-BQ-1 — "The session changed on the desktop — try
+the switch again." live).
 
 ---
 
@@ -13021,3 +13029,162 @@ one pair → N-BQ-1).
 **ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0
 Phase-5 dispatch. Phase-5 disposition: **4/4 rows FIXED + exit gate PASSED — the phase is
 COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
+
+---
+
+# Phase 6 fix-round record (APPENDED 2026-11-19 — the roadmap's fix log; discovery + phases 1–5 above untouched)
+
+> **Phase 6 — Held-queue guard & stale-command faces: 3/3 rows FIXED + exit gate PASSED.**
+> Branch `fix/pass0`, one finding ≥ one commit: `428c329d` (fix(F-P19-A)) → `cd8cfaf0`
+> (fix(F-P20-A)) → `1e9531a2` (fix(N-BQ-1)); the pins landed first as one RED commit
+> `3eb3d6ee` (test(pass0-phase6), RED at the pre-fix tip `1ef0d1a1` — every pin references
+> the new API surface, the campaign's new-API pin shape) plus `3151cb72` (the Robolectric
+> w*dp qualifier fix, the phase-5 rig learning re-applied). Order inside the phase followed
+> the roadmap: F-P19-A → F-P20-A (one pair) → N-BQ-1.
+
+## What the fixes do (mechanisms)
+
+- **F-P19-A (`428c329d`) — the guard CAS-mismatch re-opens the confirmation (desktop
+  parity).** `CommandCoordinator` grows the typed `Outcome.ConfirmationRequired(ack)` for the
+  `guard.heldQueueConfirmationStale` failed ack (`GUARD_HELD_QUEUE_CONFIRMATION_STALE`
+  sentinel); the outbox verdict is UNCHANGED — the row still stores FAILED_TERMINAL with the
+  verbatim reasonCode + message (the V.C static shape), the overlay still drops.
+  `SendOutcome.CONFIRMATION_REQUIRED` carries the identity up; `routeSendPrompt` and
+  `sendSlash` map it to a `heldQueueReconfirmation` epoch bump (a COMBINE source — the
+  re-emit is guaranteed) with NO refusal notice (the desktop records no fail settle) and the
+  draft preserved, so the composer's `LaunchedEffect(epoch)` re-arms the disposition dialog
+  and `heldQueueIds()` re-reads the live projection at ANSWER time (the desktop's
+  snapshot-re-read parity; a resync that landed meanwhile rides the retry — receipted live,
+  leg A2's answer carried the post-resync 3-id set).
+- **F-P20-A (`cd8cfaf0`) — the goal sends carry the answered trio.**
+  `sendGoalCommand` grows the optional trio params (the no-trio payload stays byte-identical);
+  `ConversationPort.sendGoal`/`Ports.sendGoal` forward it; `send()`'s SendGoal branch forwards
+  the composer dialog's answer (the pass-21 discard is closed); the context sheet's Set-goal
+  now GATES on the choice state — the shared `HeldQueueDispositionDialog` (ONE composable,
+  composer + sheet render the same ask) fires BEFORE any wire and its answer rides
+  `setGoal(objective, disposition, ids)`; a staged sheet goal routes a re-opened dialog's
+  ANSWER to the goal (a non-null disposition only ever arrives from a dialog answer, so a
+  plain draft send can never be misrouted) and a dismissal drops the stash
+  (`cancelGoalForChoice`); a goal-CAS mismatch re-stages the objective (the desktop's
+  slash-path re-open parity). **The compact variant ships the fix line's "stop asking" arm**:
+  `dispatchSend()` parses the draft with the SAME `parseVisibleSlashCommand` grammar the VM
+  dispatch uses (attachments gate included) and skips the ask for Compact dispatches —
+  desktop parity (the host's `vMc` consults the routing mode, never a trio; the desktop never
+  asks), so the pass-22 Y.E "answer silently discarded" driver is removed at the source: no
+  ask, no answer, nothing to discard. The Accept's "the outbox rows carry the trio for …
+  compact sends" is satisfied through that arm (the row carries `{}` verbatim, as the wire
+  contract demands — a trio on a compact payload would be dead keys the host ignores).
+- **N-BQ-1 (`1e9531a2`) — the effort stale face is reachable.** `v4Call`'s ChannelError arm
+  now recognizes the revision-mismatch identity (`isRevisionMismatch`: the pinned `-32009`
+  error code off the retained ChannelError body — `ChannelSession` keeps the raw RpcValue —
+  with the verbatim "Session state revision mismatch" message as the envelope-shape fallback)
+  and throws the typed `StaleRevisionFailure` (still serverSpoke/TASK — an authoritative
+  stale verdict, never the UNKNOWN class, so every existing TransportFailure consumer keeps
+  its behavior); `Ports.setThoughtLevel`'s typed catch maps it to `SendOutcome.STALE` — the
+  enumerated SESSION_CHANGED branch renders its honest "try the switch again" warning.
+
+## The pins (37, all GREEN post-fix; RED evidence captured pre-fix)
+
+- `data` Pass0Phase6HeldQueueGuardTest 7/7 — the ConfirmationRequired identity, the outbox
+  FAILED_TERMINAL V.C shape (verbatim reasonCode + message), the non-guard control, the
+  overlay drop, the goal trio payload (legacy shape unchanged), the goal guard ack.
+- `core/transport` Pass0Phase6StaleRevisionTest 3/3 — the -32009 Obj-body arm, the
+  message-fallback arm, the -32004 control (plain TransportFailure).
+- `features/conversation` Pass0Phase6HeldQueueGuardVmTest 11/11 — the epoch bump with NO
+  notice + the draft kept (repeated mismatches keep bumping), the non-guard control, the
+  slash-goal re-arm, the goal trio forwarding (composer-slash + sheet + the stash routing +
+  dismissal), the SESSION_CHANGED consumer branch.
+- `features/conversation` Pass0Phase6HeldQueueGuardUiTest 10/10 — compact skips the ask
+  (+ /compress alias), /goal keeps it, plain text keeps it (control), compact-outside-choice
+  (control), the epoch re-arms the dialog (+ the no-epoch control), the sheet gate
+  end-to-end (Keep + Clear + the no-held-queue control).
+- `app` Pass0Phase6HeldQueueGuardWireTest 6/6 — the REAL RelayTransport↔MockZCode E2E: the
+  guard ack → CONFIRMATION_REQUIRED with the outbox row FAILED_TERMINAL + verbatim ackMessage,
+  the matching-trio CAS-ok control, the trio-bearing goal passes the choice admission with
+  payloadJson carrying the keys, the legacy trio-less goal stays host-refused (the admission
+  never loosened), the -32009 → STALE through the full stack, the unscripted ACCEPTED control.
+- Full touched-module suites re-run (`:features:conversation` 405-class + `:data` + `:app` +
+  `:core:transport:test` + `:tools:mockzcode:test` — the six pure-JVM rule honored for the
+  two JVM modules in scope): name-diff vs the pre-phase baseline (`1ef0d1a1`) — **zero new
+  failing names**; the two app names are adjudicated: U4 `sendText lands as authoritative
+  rows` is the PRE-EXISTING baseline failure (deterministic at `1ef0d1a1` — mock routing
+  default serves startNow where the test pins enqueue; NOT this phase's surface), and the
+  E8 `draft persists` pool name is a load flake GREEN in isolation (re-run 2×). The task
+  failure list held only test-failure tasks; every module emitted test XML.
+
+## Exit gate — live receipts (fresh zcode-a16 cold boot + relay gen1 `mock-p6fix-gen1-a41c77`)
+
+Rig: COLD BOOT (`-no-snapshot-load -gpu swiftshader_indirect -no-audio -no-boot-anim`, boot
+~50 s; wifi re-ENABLED after the svc-disable NAT lesson), `install -r` of the FRESH APK
+(sha256 `831cb6a8e38600cc…`, versionCode 53 / versionName 1.3.2 — the FIRST non-`ad449d7d`
+artifact of the pass-0 campaign: the app code changed), logcat fresh `-T 1` →
+/tmp/p6fix/logcat.log; relay gen1 arms = MOCK_ROWS=12 + MOCK_QUEUE=1 + MOCK_INPUT_ROUTING=choice
++ MOCK_QUEUE_GHOST_APPEND_MS=4000 + MOCK_SET_THOUGHT_LEVEL_STALE=1; receipts /tmp/p6fix/
+(shots a1-typed/a1-after/a2-reopen/a2-dismissed/b1-goal-dialog/b3-sheet-gate/b4-sheet-disposition/
+c1-check/c2-composer-goal-dialog/d1-compact-no-dialog/e1-effort-stale + dumps w0–w39 +
+relay-g1.log + the DB pulls). One rig-side ANR on the Context-chip tap (the recorded class),
+cleared via CLOSE_SYSTEM_DIALOGS; the app survived (same pid). STEP 0: desktop 3.18.1 /
+asar `ec475e6e…` UNCHANGED — no DELTA.
+
+- **(a) F-P19-A — the CAS mismatch re-opens the confirmation with fresh ids.** Leg A1:
+  draft → Send → G50 → Keep → `MOCK: sendText heldQueue CAS ok (… live=[q-rig-1, q-rig-2])`
+  → ACKED. Ghost: `MOCK: heldQueue ghost appended SILENTLY (no patch) -> live=[…,
+  q-rig-ghost-1]`. Leg A2: second trio send → Keep → **`MOCK: sendText heldQueue CAS
+  MISMATCH (expected=[q-rig-1, q-rig-2] live=[…, q-rig-ghost-1]) ->
+  guard.heldQueueConfirmationStale (no mutation)`** → **the dialog RE-OPENED**
+  (a2-reopen.png: "Queue is held" over the PRESERVED `vp6casB` draft — the pass-19 pre-fix
+  face was the generic refusal banner with NO dialog), NO refusal banner rendered
+  (a2-dismissed.png post-dismiss: the draft still in the composer, zero banner), and the
+  resync that followed reconciled the strip 2→3 (the retry's answer would carry the fresh
+  3-id set — the desktop's snapshot-re-read parity, receipted). **DB arbiter**:
+  `sendText | FAILED_TERMINAL | failed | guard.heldQueueConfirmationStale | "paused queue
+  changed after send confirmation opened"` with the trio in payloadJson (the V.C static
+  shape intact one layer down), directly above the A1 `ACKED/accepted` row.
+- **(b) F-P20-A — the goal through the sheet carries the trio.** Context sheet → "Set a goal
+  for this session" → the goal dialog → confirm → **the SHEET's disposition dialog fired
+  BEFORE any wire** (b4-sheet-disposition.png; zero sendGoalCommand in the relay log at that
+  point — the pass-20 pre-fix shape went straight to the wire and was refused) → Keep →
+  `MOCK: command type=sendGoalCommand` with NO admission-refusal line → **DB arbiter**:
+  `sendGoalCommand | ACKED | accepted | payloadJson {"text":"goalp6","displayText":"/goal
+  goalp6","heldQueueDisposition":"keepQueueAndSend","expectedHeldQueueItemIds":
+  ["q-rig-1","q-rig-2","q-rig-ghost-1"]}` — the trio's keys VERBATIM (the pass-20 arbiter's
+  missing keys, now present; the ids are the LIVE post-resync set — re-read at answer time).
+- **(c) F-P20-A — the goal through the composer slash carries the trio.** Composer
+  `/goal shipp6` → Send → the G50 dialog → Keep → **DB arbiter**:
+  `sendGoalCommand | ACKED | accepted | payloadJson {"text":"shipp6","displayText":"/goal
+  shipp6","heldQueueDisposition":"keepQueueAndSend","expectedHeldQueueItemIds":[…3 ids…]}` —
+  the slash displayText proving the composer path (the pass-21 pre-fix row was
+  FAILED_TERMINAL/heldQueueDispositionRequired with the trio's absence verbatim).
+- **(d) F-P20-A — /compact never asks (the "stop asking" arm).** Composer `/compact` → Send
+  → **NO disposition dialog** (d1-compact-no-dialog.png: the plain conversation, the composer
+  cleared by the accepted dispatch) → `MOCK: command type=compact` → **DB arbiter**:
+  `compact | ACKED | accepted | payloadJson {}` — the EMPTY payload verbatim (no trio keys on
+  a compact command, per the wire contract; no answer was asked, so none was discarded — the
+  Y.E driver is gone).
+- **(e) N-BQ-1 — the effort switch renders the honest stale face.** Chips → "Effort · max" →
+  the effort sheet (medium/high/max radios + xhigh) → tap `high` → relay
+  `MOCK: setThoughtLevel forced revision-mismatch (MOCK_SET_THOUGHT_LEVEL_STALE) -> Dl -32009
+  (expected=101)` → logcat **`port.setThoughtLevel :: stale revision: Session state revision
+  mismatch`** (the NEW typed-catch line; the pass-22 pre-fix line was `TransportFailure:`) →
+  **the banner "The session changed on the desktop — try the switch again."** (e1-effort-stale.png)
+  — the previously-DEAD SESSION_CHANGED branch, live. The pass-22/23/24 pre-fix face ("The
+  desktop refused the effort switch — nothing changed.") is retired.
+
+## Ledger arithmetic
+
+Open F: **13** (was 15; −2: F-P19-A, F-P20-A) · Open G: **20** (unchanged — no G rows in
+Phase 6) · Open smalls: **11** (was 12; −1: N-BQ-1). **Phases 1–6 are COMPLETE — 45/51 rows
+closed; Phase 7 next (Composer, attachments & notices — 10 rows, sub-phases 7A/7B).**
+
+**2026-11-19, verified at 01:53:42 (hh-mm-ss, local time; the docs commit follows).** Verified
+by **GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0
+Phase-6 dispatch ("begin phase 6, and only this phase… add tests… add a mark/check/tick and
+done… who verified this phase, model/llm and harness used… commit this whole phase… only local
+commits"). Phase-6 disposition: **3/3 rows FIXED + exit gate PASSED — the phase is COMPLETE**.
+Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
+
+**Rig left:** emulator zcode-a16 UP (cold-booted this round), relay gen1
+(`mock-p6fix-gen1-a41c77`) ALIVE — arms SPENT (the ghost fired once; the CAS arm stays armed
+and sticky; SET_THOUGHT_LEVEL_STALE sticky), app pid 2640 CONNECTED (relay-13) on the
+synthetic conversation; `pkill -f MockRelayMainKt` to end. Receipts: /tmp/p6fix/.
