@@ -36,9 +36,10 @@ class Pass0Phase8LiveWindowSubtitleTest {
 
     /** The service must be "running" or the row is disabled (no clickable — the pick is unreachable). */
     private fun markServiceRunning() {
-        val companion = LiveConnectionService::class.java.getDeclaredField("Companion").apply { isAccessible = true }.get(null)
-        val field = companion.javaClass.getDeclaredField("_isRunning").apply { isAccessible = true }
-        (field.get(companion) as MutableStateFlow<Boolean>).value = true
+        // Kotlin compiles private companion vals as STATIC fields on the outer class
+        // (javap: LiveConnectionService._isRunning, accessed via access$get_isRunning$cp).
+        val field = LiveConnectionService::class.java.getDeclaredField("_isRunning").apply { isAccessible = true }
+        (field.get(null) as MutableStateFlow<Boolean>).value = true
     }
 
     private fun rowText(): String {

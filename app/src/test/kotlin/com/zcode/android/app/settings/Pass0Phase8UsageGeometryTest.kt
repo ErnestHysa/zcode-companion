@@ -112,7 +112,10 @@ class Pass0Phase8UsageGeometryTest {
         // ~60px above the summary's top edge, inside the PullToRefreshBox.
         rule.onNodeWithTag("usage_pull").performTouchInput {
             val startX = (right - left) / 2f
-            val startY = (before - top - 60f).coerceAtLeast(10f)
+            // The MIDPOINT of the gap between the pull box's top and the content's top:
+            // pre-fix that gap is a full extra `inner` (the dead zone — the midpoint sits
+            // inside it); post-fix the gap is ~0 and the swipe starts on the scrollable.
+            val startY = ((before - top) / 2f).coerceAtLeast(10f)
             down(androidx.compose.ui.geometry.Offset(startX, startY))
             moveTo(androidx.compose.ui.geometry.Offset(startX, startY - 200f))
             moveTo(androidx.compose.ui.geometry.Offset(startX, startY - 400f))
