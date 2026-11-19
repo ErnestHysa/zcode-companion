@@ -43,6 +43,7 @@ import com.zcode.android.domain.model.SessionConfigState
 import com.zcode.android.domain.model.TurnFileChanges
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.core.ui.components.ZCodeChip
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * Phase 9 conversation affordances (§43.2-9): model/mode switch chips (9.5),
@@ -376,7 +377,10 @@ fun TurnDiffDialog(
             when {
                 result == null -> Text(stringResource(R.string.changes_loading), style = MaterialTheme.typography.bodySmall)
                 loadError != null -> Text(
-                    stringResource(R.string.changes_error, loadError),
+                    // N-BO-1 (pass-0 Phase 7): the raw `fault.*` diagnostic maps to the
+                    // human copy at the UI boundary (the K9-errorcopy classifier); the
+                    // raw code stays in the diagnostics ring.
+                    stringResource(R.string.changes_error, friendlyFaultMessage(loadError as? String)),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )

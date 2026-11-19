@@ -79,6 +79,7 @@ import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import com.zcode.android.core.ui.components.ZCodeButton
 import com.zcode.android.core.ui.components.rememberZCodeHaptics
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 import com.zcode.android.core.ui.components.minRowTouchTarget
 
@@ -1894,7 +1895,17 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.MODEL_TRANSITION -> R.string.notice_model_transition
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
-        listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))
+        // N-BO-1 (pass-0 Phase 7): the arg is the TransportFailure diagnostic — a raw
+        // `fault.*` code maps to the human copy at THIS boundary (the renderer holds
+        // the resources, the view model stays resource-free). Non-fault args (the
+        // connection-lost fallback, plain transport text) pass through unchanged.
+        val raw = notice.args.firstOrNull()?.takeIf { it.isNotBlank() }
+        val resolved = when {
+            raw == null -> stringResource(R.string.notice_connection_lost)
+            raw.startsWith("fault.") -> friendlyFaultMessage(raw)
+            else -> raw
+        }
+        listOf(resolved)
     } else {
         notice.args
     }

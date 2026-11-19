@@ -142,7 +142,9 @@ class QuotaResetRawFaultCopyTest {
             0,
             raw.size,
         )
-        val human = rule.onAllNodesWithText("couldn't complete this request", substring = true)
+        // fault.mock.unscripted:… carries the unscripted marker → the UNAVAILABLE family
+        // (ErrorCopy.faultMessageRes), not the generic desktop-fault face.
+        val human = rule.onAllNodesWithText("available on the connected desktop", substring = true)
             .fetchSemanticsNodes()
         assertTrue(
             "the fault→human mapping copy must render instead (${human.size} nodes)",

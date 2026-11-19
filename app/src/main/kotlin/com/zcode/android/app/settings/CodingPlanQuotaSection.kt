@@ -453,7 +453,11 @@ private fun QuotaMeterList(
                         )
                         ResetUiStatus.AVAILABLE -> e.error?.let { err ->
                             Text(
-                                stringResource(R.string.quota_reset_error) + " · " + err,
+                                // N-BO-1 (pass-0 Phase 7): the raw `fault.*` diagnostic
+                                // maps to the human copy at the UI boundary — the face
+                                // was "Reset failed · fault.mock.unscripted:…".
+                                stringResource(R.string.quota_reset_error) + " · " +
+                                    com.zcode.android.core.ui.components.friendlyFaultMessage(err),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.testTag("quota_reset_error"),
