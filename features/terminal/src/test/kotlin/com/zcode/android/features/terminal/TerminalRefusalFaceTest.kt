@@ -9,12 +9,11 @@ import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.features.terminal.port.TerminalPort
 import com.zcode.android.features.terminal.ui.TerminalScreen
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
 
 /**
  * N-CC-1 (pass-0 Phase 9) pins: the terminal REFUSAL face's Retry button rendered
@@ -87,6 +86,5 @@ class TerminalRefusalFaceTest {
         rule.waitForIdle()
         rule.onNodeWithTag("terminal_retry").assertExists()
         rule.onNodeWithText("Attach").assertExists()
-        assertTrue(true)
     }
 }

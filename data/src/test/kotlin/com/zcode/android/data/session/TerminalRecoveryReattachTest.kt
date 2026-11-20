@@ -3,16 +3,17 @@ package com.zcode.android.data.session
 import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.core.transport.CapabilitySnapshot
 import com.zcode.android.core.transport.EndpointKind
+import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.protocol.v4.HostCapabilities
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * F-P48-A (pass-0 Phase 9) pins: the terminal channel's recovery half. The pass-48
