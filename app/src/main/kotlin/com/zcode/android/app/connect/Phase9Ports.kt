@@ -126,6 +126,21 @@ class DefaultTerminalPort(
 
     override suspend fun write(data: String) = controller.write(data)
     override suspend fun resize(cols: Int, rows: Int) = controller.resize(cols, rows)
+
+    /**
+     * F-P48-A: the CONNECTED-transition consumer — wired from the hub's
+     * `onConnected` hook by the composition root. A transport recovery must
+     * re-fire the terminal attach while the port state is Live (the channel
+     * listens died with the old connection); backgrounded off the hub's
+     * coroutine so the hook stays non-suspend.
+     */
+    fun onTransportConnected() {
+        recoveryScope.launch { controller.onTransportConnected() }
+    }
+
+    private val recoveryScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob(),
+    )
 }
 
 // ---------------------------------------------------------------- git (§9.4)

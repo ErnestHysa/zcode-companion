@@ -34,6 +34,10 @@ class TerminalController(
         const val ROWS = 32
         /** ADR-022: the arm's idle expiry (every keystroke re-arms). */
         const val ARM_EXPIRY_MS = 10 * 60 * 1000L
+        /** F-P48-A: an attach that loses the transport within this window counts as a young death. */
+        const val RECOVERY_SURVIVAL_WINDOW_MS = 60_000L
+        /** F-P48-A: consecutive young re-attaches before the honest face replaces the loop. */
+        const val RECOVERY_MAX_CONSECUTIVE_DEATHS = 3
     }
 
     // ---- ADR-022 (Phase 5D): the armed input plane ----
@@ -113,6 +117,10 @@ class TerminalController(
     private var dataListener: Int? = null
     private var exitListener: Int? = null
 
+    /** F-P48-A recovery bookkeeping: when the current session attached + its young-death streak. */
+    private var lastAttachAtMs = 0L
+    private var consecutiveYoungDeaths = 0
+
     /** Raw ring: line-buffered UTF-8 text + running byte count (drop-oldest by lines). */
     private val ringLines = ArrayDeque<String>()
     private var ringBytes = 0
@@ -155,6 +163,7 @@ class TerminalController(
                 }
             }
             log.info("terminal.attached", "id=$id")
+            lastAttachAtMs = System.currentTimeMillis()
             State.Live(id, result.strOrNull("shell"))
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
@@ -179,6 +188,43 @@ class TerminalController(
         }
         terminalId = null
         if (!silent) _state.value = State.Idle
+    }
+
+    /**
+     * F-P48-A: the CONNECTED-transition hook. A transport recovery re-establishes
+     * the connection but the terminal channel's per-id listens died with the old
+     * connection — the pass-48 receipt showed 9+ minutes of stale LIVE with the
+     * ring frozen and the scheduled exit never rendering (manual Detach→Attach was
+     * the only recovery). A Live session re-fires the attach here: the stale Live
+     * is dropped silently (the old id is unreachable on the new connection — no
+     * dispose wire call) and a fresh create + listens re-register. The arm is
+     * per-attach (ADR-022): the recovered session starts disarmed.
+     *
+     * BOUNDED: an attach that loses the transport young (< [RECOVERY_SURVIVAL_WINDOW_MS])
+     * counts toward [RECOVERY_MAX_CONSECUTIVE_DEATHS]; exhausting the cap flips the
+     * face honestly to [State.Refused] (the labeled Attach — N-CC-1 — is the manual
+     * recovery) instead of re-firing a stream class the reader cannot survive. An
+     * aged session resets the streak (the drop was an ordinary network blip).
+     */
+    suspend fun onTransportConnected() {
+        if (_state.value !is State.Live) return // Idle/Attaching/Exited/Refused: nothing to recover
+        val now = System.currentTimeMillis()
+        val young = lastAttachAtMs > 0 && now - lastAttachAtMs < RECOVERY_SURVIVAL_WINDOW_MS
+        consecutiveYoungDeaths = if (young) consecutiveYoungDeaths + 1 else 0
+        if (consecutiveYoungDeaths > RECOVERY_MAX_CONSECUTIVE_DEATHS) {
+            log.warn("terminal.recoveryExhausted", "youngDeaths=$consecutiveYoungDeaths")
+            disarm()
+            detach(silent = true)
+            _state.value = State.Refused(
+                "terminal stream dropped repeatedly after transport recovery — attach again",
+            )
+            return
+        }
+        log.info("terminal.recoveryReattach", "youngDeaths=$consecutiveYoungDeaths")
+        disarm()
+        detach(silent = true) // silent: the old id is unreachable on the new connection
+        _state.value = State.Idle // silent detach keeps the stale Live — drop it so attach() proceeds
+        attach()
     }
 
     /** Ring append (drop-oldest by lines at 512 KiB, INV-5) + snapshot decode. */

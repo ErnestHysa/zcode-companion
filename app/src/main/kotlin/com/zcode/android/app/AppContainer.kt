@@ -462,7 +462,13 @@ class AppContainer(context: Context) {
     init {
         // Background self-heal success → flip the pairing gate (the QR flow's connect
         // may have failed retryably; the recovery loop connecting later IS pairing).
-        hub.onConnected = { pairingPort.onTransportConnected() }
+        // F-P48-A: the terminal channel consumes the same CONNECTED-transition hook —
+        // its per-id listens die with the old connection, so a Live session re-fires
+        // its attach here (bounded: the young-death cap exhausts into the honest face).
+        hub.onConnected = {
+            pairingPort.onTransportConnected()
+            terminalPort.onTransportConnected()
+        }
     }
 
     init {
