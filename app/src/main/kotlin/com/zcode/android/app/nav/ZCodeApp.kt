@@ -943,6 +943,8 @@ private fun ConversationRoute(
     // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
     val plans by vm.plans.collectAsState()
     val trajectory by vm.trajectory.collectAsState()
+    // N-CB-1: the explicit in-flight flag (see the call site below).
+    val trajectoryLoading by vm.trajectoryLoading.collectAsState()
     val trajectorySearch by vm.sessionSearch.collectAsState()
     var showTrajectory by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     // G28 (vc51 Phase 4D): the attachment zoom-viewer target (null = closed) — full
@@ -1213,7 +1215,10 @@ private fun ConversationRoute(
         plans = plans,
         showTrajectory = showTrajectory,
         trajectory = trajectory,
-        trajectoryLoading = trajectory == null && showTrajectory,
+        // N-CB-1: the VM's explicit in-flight flag — the null-derivation made every
+        // fetch fault render an eternal loading bar (the unavailable face was
+        // structurally unreachable; receipted spinning through a full relay swap).
+        trajectoryLoading = trajectoryLoading,
         trajectorySearchResults = trajectorySearch,
         trajectoryQuery = trajectoryQuery,
         onTrajectoryQueryChange = { trajectoryQuery = it; vm.searchSession(it) },

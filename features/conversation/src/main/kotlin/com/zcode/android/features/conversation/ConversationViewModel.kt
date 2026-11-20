@@ -1177,9 +1177,26 @@ class ConversationViewModel(
         scope.launch { _plans.value = port.fetchPlans(taskId) }
     }
 
-    /** The trajectory loads when the sheet opens (A3.13). */
+    /**
+     * N-CB-1: the trajectory fetch's EXPLICIT in-flight flag — the sheet's loading
+     * face. The old caller derivation (`trajectory == null && showTrajectory`) was
+     * true EXACTLY when trajectory was null, so every fetch fault (the typed fault
+     * receipted spinning through a full relay swap) rendered an eternal loading bar
+     * and the honest `trajectory_unavailable` face was structurally unreachable.
+     */
+    private val _trajectoryLoading = MutableStateFlow(false)
+    val trajectoryLoading: StateFlow<Boolean> = _trajectoryLoading.asStateFlow()
+
+    /** The trajectory loads when the sheet opens (A3.13); reopen re-fires (the retry). */
     fun loadTrajectory() {
-        scope.launch { _trajectory.value = port.fetchTrajectory(taskId) }
+        scope.launch {
+            _trajectoryLoading.value = true
+            try {
+                _trajectory.value = port.fetchTrajectory(taskId)
+            } finally {
+                _trajectoryLoading.value = false
+            }
+        }
     }
 
     /** Client-side search over `readSessionMessages` (role + content contains, case-insensitive). */
