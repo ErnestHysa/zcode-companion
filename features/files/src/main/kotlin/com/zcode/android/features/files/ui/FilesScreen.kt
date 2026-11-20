@@ -73,6 +73,7 @@ fun FilesScreen(
     val scope = rememberCoroutineScope()
     val binaryNotice = stringResource(R.string.files_binary_use_download)
     val downloadFailed = stringResource(R.string.files_download_failed)
+    val readFailedMsg = stringResource(R.string.files_read_failed)
     val root = port.workspaceRoot()
     // Directory navigation stack (INV-16: only protocol-returned paths are pushed).
     // C6: the navigation stack + open viewer survive process death.
@@ -83,6 +84,9 @@ fun FilesScreen(
     var viewer by rememberSaveable { mutableStateOf<String?>(null) }
     var textState by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceTextSlice>()) }
     var textLoading by remember { mutableStateOf(false) }
+    // F-P0-C: a refused/broken read (slice null) used to leave the viewer a SILENT
+    // BLANK panel — no error, no retry (3 receipts). The typed face + retry below.
+    var textError by remember { mutableStateOf<String?>(null) }
     // B2.16: TYPED state — display strings no longer double as the state machine
     // (the old machine routed its dialog on downloadState.startsWith("binary")).
     var downloadState by remember { mutableStateOf<DownloadUi?>(null) }
@@ -92,6 +96,34 @@ fun FilesScreen(
     var commentTarget by remember { mutableStateOf<Pair<String, Int>?>(null) }
 
     fun currentPath(): String = stack.lastOrNull() ?: root.orEmpty()
+
+    /**
+     * F-P0-C: the viewer's text load — shared by the row tap and the error face's
+     * Retry. A refused read (slice null) surfaces the typed error face instead of
+     * leaving a silent blank panel.
+     */
+    fun reloadViewerText() {
+        val path = viewer ?: return
+        textError = null
+        textState = emptyList()
+        textLoading = true
+        scope.launch {
+            val readFailedMsg = readFailedMsg
+            val first = port.readText(path, 0L, TEXT_CHUNK)
+            if (first.slice != null) {
+                textState = listOf(first.slice)
+                // Binary files never render as text (protocol-gated).
+                if (first.slice.isBinary) {
+                    downloadState = DownloadUi.Binary(binaryNotice)
+                } else {
+                    downloadState = first.error?.let { DownloadUi.Failed(it) }
+                }
+            } else {
+                textError = first.error ?: readFailedMsg
+            }
+            textLoading = false
+        }
+    }
 
     suspend fun load(path: String) {
         loading = true
@@ -218,22 +250,10 @@ fun FilesScreen(
                                         if (p.error != null) downloadState = DownloadUi.Failed(p.error)
                                     }
                                 } else {
+                                    // F-P0-C: the shared read path (the error face's Retry
+                                    // re-fires the same one).
                                     viewer = entry.path
-                                    textState = emptyList()
-                                    textLoading = true
-                                    scope.launch {
-                                        val first = port.readText(entry.path, 0L, TEXT_CHUNK)
-                                        if (first.slice != null) {
-                                            textState = listOf(first.slice)
-                                            // Binary files never render as text (protocol-gated).
-                                            if (first.slice.isBinary) {
-                                                downloadState = DownloadUi.Binary(binaryNotice)
-                                            } else {
-                                                downloadState = first.error?.let { DownloadUi.Failed(it) }
-                                            }
-                                        }
-                                        textLoading = false
-                                    }
+                                    reloadViewerText()
                                 }
                             }
                             .padding(vertical = 6.dp),
@@ -316,6 +336,26 @@ fun FilesScreen(
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(12.dp),
                         )
+                    }
+                }
+            } else if (textError != null) {
+                // F-P0-C: the refused read's typed face + retry — never a silent blank panel.
+                Row(
+                    Modifier.fillMaxWidth().testTag("files_text_error"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        textError ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { reloadViewerText() },
+                        modifier = Modifier.testTag("files_text_retry"),
+                    ) {
+                        Text(stringResource(com.zcode.android.core.ui.R.string.action_retry))
                     }
                 }
             } else if (textLoading) {
