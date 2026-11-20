@@ -20,6 +20,10 @@ import kotlin.coroutines.resume
  *  - API <28 or no FragmentActivity host: FAIL CLOSED (returns false, INV-14:
  *    an unconfirmable device is never silently treated as confirmed).
  * A cancelled/denied prompt also returns false — the flip never happens.
+ * NO negative button: androidx FORBIDS negative text whenever DEVICE_CREDENTIAL
+ * is allowed ("Negative text must not be set if device credential authentication
+ * is allowed") — the system credential UI carries its own cancel (the rig FATAL,
+ * receipted 2026-11-20; pinned by [DeviceCredentialPromptInfoTest]).
  */
 object DeviceCredentialConfirm {
 
@@ -33,19 +37,25 @@ object DeviceCredentialConfirm {
 
                 override fun onAuthenticationError(code: Int, errString: CharSequence) {
                     if (!cont.isActive) return
-                    // cancelled/timeout/negative → the gate stays OFF (never a silent arm)
+                    // cancelled/timeout/negative/no-credential → the gate stays OFF
+                    // (never a silent arm; INV-14)
                     cont.resume(false)
                 }
             }
-            val info = BiometricPrompt.PromptInfo.Builder()
-                .setTitle(title)
-                .setNegativeButtonText(activity.getString(android.R.string.cancel))
-                .setAllowedAuthenticators(allowedAuthenticators())
-                .build()
             BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
-                .authenticate(info)
+                .authenticate(promptInfo(title))
         }
     }
+
+    /**
+     * The prompt descriptor (pure, unit-pinned): DEVICE_CREDENTIAL always allowed,
+     * NO negative button (the androidx invariant above).
+     */
+    internal fun promptInfo(title: String): BiometricPrompt.PromptInfo =
+        BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title)
+            .setAllowedAuthenticators(allowedAuthenticators())
+            .build()
 
     private fun allowedAuthenticators(): Int =
         if (Build.VERSION.SDK_INT >= 30) {
