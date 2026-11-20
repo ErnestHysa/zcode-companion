@@ -50,7 +50,13 @@ class PairingViewModel(
             is PairingFlow.Event.UnpairConfirmed -> {
                 scope.launch {
                     port.unpair()
-                    _state.value = PairingFlow.reduce(PairingFlow.State.Connected(pendingLink ?: fakeLink()), event)
+                    // F-P2-B: reduce from the GENUINE current state — the old shape
+                    // fabricated a `Connected(pendingLink ?: fakeLink())` source state
+                    // (a manufactured link with zero relationship to any real pairing)
+                    // to feed the reducer. The reduce discards the source for this event
+                    // today, but the fabrication is the hazard class the row names; the
+                    // honest reduction needs no invented link at all.
+                    _state.value = PairingFlow.reduce(_state.value, event)
                 }
             }
             else -> _state.value = PairingFlow.reduce(_state.value, event)
@@ -109,6 +115,4 @@ class PairingViewModel(
             }
         }
     }
-
-    private fun fakeLink() = PairingFlow.LinkView("paired", "endpoint", "", "", 0)
 }
