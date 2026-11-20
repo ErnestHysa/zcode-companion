@@ -126,6 +126,12 @@ class MockZCode(
          * drivable (it was never receipted in the pass0 series).
          */
         var pageRangeFault: Boolean = false
+        /**
+         * Pass-0 Phase 8 exit gate (F-P0-C, MOCK_FILE_READ_FAULT=<path>): a LISTED file
+         * whose readTextFile faults with fault.file.notFound — the phone's refused-read
+         * face + Retry on the §23.4 viewer (the silent blank panel's receipt arm).
+         */
+        var fileReadFaultPath: String? = null
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -4490,6 +4496,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "readTextFile" -> {
                 val path = params?.str("path").orEmpty()
                 val rel = fileRelPath(path)
+                if (script.fileReadFaultPath != null && (path == script.fileReadFaultPath || rel == script.fileReadFaultPath)) {
+                    println("MOCK: file read fault (MOCK_FILE_READ_FAULT) path=$path")
+                    return respondError(id, "fault.file.notFound")
+                }
                 val content = script.fileText[path] ?: rel?.let { script.fileText[it] }
                 if (content == null) respondError(id, "fault.file.notFound")
                 else {

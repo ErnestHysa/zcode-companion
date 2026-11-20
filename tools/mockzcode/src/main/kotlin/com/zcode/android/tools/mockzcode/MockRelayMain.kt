@@ -274,6 +274,9 @@ fun main() {
     // the phone's Load-earlier error strip + Retry face (never receipted in the pass0
     // series) becomes drivable.
     System.getenv("MOCK_PAGE_FAULT")?.let { mock.script.pageRangeFault = it == "1" }
+    // Pass-0 Phase 8 exit gate (F-P0-C): a listed file whose readTextFile faults —
+    // the phone's refused-read face + Retry on the Files viewer.
+    System.getenv("MOCK_FILE_READ_FAULT")?.let { mock.script.fileReadFaultPath = it }
     // PART K live leg: one rich-markdown assistant row so the phone's parser renders
     // against real wire content (nested list, table, fenced code, inline code, link).
     mock.script.demoAssistantMarkdown = listOf(
