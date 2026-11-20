@@ -20,7 +20,11 @@
     "clearTaskUnreadIfMatches, createSelectionSideSession, deleteSession, getAgentSessionEvents, getTaskState,",
     "renameSession, sendGoalCommand, sendText) are NOT matched by the shipped-bundle extractors (phone-side port",
     "names for desktop-shaped methods) \u2014 the sensor is blind to their removal until the extractor gains their",
-    "registration shape. Recorded, not silently absorbed."
+    "registration shape. Recorded, not silently absorbed.",
+    "ADR-022 execution (pass-0 Phase 9 G104, 2026-11-20): 'facade' begins \u2014 the armed",
+    "terminal write/resize tier joins the consumed v4 ports (their removal classifies",
+    "BREAKING in the bundle sensor leg). Terminal-plane-only for now; the rest of the",
+    "facade map lands when its extractor registration shape exists (see the Phase-2H note)."
   ],
   "consumed": {
     "schemas/zcode-protocol-v4/*": true,
@@ -33,7 +37,9 @@
     "slash/goal": true,
     "modes/*": true,
     "limits/*": true,
-    "channels/*": false
+    "channels/*": false,
+  "facade/terminalWrite": true,
+  "facade/terminalResize": true
   },
   "facade": {
     "addPluginMarketplace": true,

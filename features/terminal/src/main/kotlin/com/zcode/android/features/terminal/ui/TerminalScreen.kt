@@ -4,6 +4,8 @@ import androidx.compose.ui.res.stringResource
 import com.zcode.android.features.terminal.R
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,13 +54,22 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 
 /**
- * §21 view-only terminal surface. Streaming output with ANSI SGR colors, bounded
- * ring (512 KiB — the dropped-bytes counter renders honestly when nonzero),
- * autoscroll + pause, search. NO keyboard input is offered anywhere (INV-9).
- * Every §14.4-adjacent state renders (INV-11): idle/attaching/live/exited/
- * refused/capability-off/opt-in-required.
+ * §21 terminal surface. Streaming output with ANSI SGR colors, bounded ring
+ * (512 KiB — the dropped-bytes counter renders honestly when nonzero),
+ * autoscroll + pause, search. Read-only by default; the ONLY input surface is
+ * the ADR-022 armed composer (G104 executed): the input opt-in + a per-attach
+ * arm gate it (the Arm button on Live; the armed banner stays visible while
+ * armed; a single-line field sends `\r` on Enter and a dedicated Ctrl-C sends
+ * `\u0003`; arming auto-clears on detach/exit/background/10-min idle). Every
+ * §14.4-adjacent state renders (INV-11): idle/attaching/live/exited/refused/
+ * capability-off/opt-in-required.
  */
 @Composable
 fun TerminalScreen(
@@ -68,6 +79,9 @@ fun TerminalScreen(
     val state by port.state.collectAsState()
     val snapshot by port.snapshot.collectAsState()
     val optIn by port.optIn.collectAsState()
+    // ADR-022 (G104): the armed input tier's renders read the gate flows.
+    val armed by port.armed.collectAsState()
+    val inputOptIn by port.inputOptIn.collectAsState()
     // C6: pause/search survive process death.
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searchMode by rememberSaveable { mutableStateOf(false) }
@@ -78,6 +92,17 @@ fun TerminalScreen(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val matches = remember(searchQuery, snapshot) {
         if (searchMode) port.search(searchQuery) else emptyList()
+    }
+
+    // ADR-022 gate 4: the arm auto-clears when the app leaves the foreground —
+    // a backgrounded armed terminal is exactly the T23 lost-phone window.
+    val lifecycle = (context as? LifecycleOwner)?.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) port.disarm()
+        }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
     }
 
     // §19.2 scroll anchoring: autoscroll only while at bottom and not paused.
@@ -91,15 +116,16 @@ fun TerminalScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Header: VIEW-ONLY indicator + state line (§21: visible persistent indicator).
+        // Header: posture indicator (VIEW-ONLY / INPUT ARMED — §21 visible persistent
+        // indicator; the badge swaps the moment an arm is held) + state line.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                stringResource(R.string.terminal_view_only_badge),
+                stringResource(if (armed) R.string.terminal_input_armed_badge else R.string.terminal_view_only_badge),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (armed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(if (armed) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant)
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
             when (val s = state) {
@@ -185,8 +211,57 @@ fun TerminalScreen(
                     }
                     }
                 }
-                // Detach affordance — the ONLY control that talks to the desktop, and
-                // it is the protocol `dispose` (view-only: no write/resize exists).
+                // ADR-022 (G104 executed): the armed input tier. The Arm affordance
+                // exists ONLY on Live with the input opt-in held; the composer exists
+                // ONLY while an arm is held (the port's typed gate is the last line
+                // of defense — write/resize throw while disarmed, zero wire calls).
+                val isLive = state is TerminalPort.TerminalState.Live
+                if (isLive && inputOptIn && !armed) {
+                    ZCodeButton(
+                        onClick = { scope.launch { port.arm() } },
+                        modifier = Modifier.testTag("terminal_arm_input"),
+                    ) { Text(stringResource(R.string.terminal_arm_input)) }
+                }
+                if (isLive && armed) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth().testTag("terminal_input_armed_banner"),
+                    ) {
+                        Text(
+                            stringResource(R.string.terminal_input_armed_banner),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        var command by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = command,
+                            onValueChange = { command = it },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+                                autoCorrectEnabled = false,
+                                keyboardType = KeyboardType.Ascii,
+                                imeAction = ImeAction.Send,
+                            ),
+                            keyboardActions = KeyboardActions(onSend = {
+                                val chunk = command + "\r" // ADR-022: Enter sends \r
+                                command = ""
+                                scope.launch { port.write(chunk) }
+                            }),
+                            label = { Text(stringResource(R.string.terminal_composer_label)) },
+                            modifier = Modifier.weight(1f).testTag("terminal_composer"),
+                        )
+                        ZCodeButton(
+                            onClick = { scope.launch { port.write("\u0003") } },
+                            modifier = Modifier.testTag("terminal_ctrl_c"),
+                        ) { Text(stringResource(R.string.terminal_ctrl_c)) }
+                    }
+                }
+                // Detach affordance — ends the session (and the arm, ADR-022).
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     AssistChip(

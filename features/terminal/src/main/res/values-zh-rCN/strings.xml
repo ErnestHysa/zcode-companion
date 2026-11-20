@@ -12,7 +12,7 @@
     <string name="terminal_detach">断开</string>
     <string name="terminal_attach">连接</string>
     <string name="terminal_consent_title">终端（仅查看）</string>
-    <string name="terminal_consent_body">终端输出是敏感内容：它会实时显示你电脑上工作区的 shell 画面。它是只读的（你输入的任何内容都不会到达 shell），除非你在此处启用，否则保持关闭。每个端点只需在设置中启用一次；你可以随时关闭。</string>
+    <string name="terminal_consent_body">终端输出是敏感内容：它会实时显示你电脑上工作区的 shell 画面。输出是只读的；输入需要更严格的第二重开关（经设备凭据确认），并且每次会话都要在本页面上手动武装（回车发送，Ctrl-C 中断）。除非你在此处启用，否则保持关闭；你可以随时关闭。</string>
     <string name="terminal_enable">启用终端（仅查看）</string>
     <string name="terminal_title">终端</string>
     <string name="terminal_status_live">运行中 — %1$s</string>
@@ -25,4 +25,9 @@
     <string name="terminal_copy_output">复制可见输出</string>
     <string name="terminal_copied">已复制</string>
     <string name="terminal_dropped_bytes">… 早已丢弃 %1$d 字节（环形缓冲上限 512 KiB）…</string>
+    <string name="terminal_input_armed_badge">输入已武装</string>
+    <string name="terminal_input_armed_banner">输入已武装 — 你输入的内容会直达桌面 shell。断开、退出、切到后台或闲置 10 分钟都会自动解除武装。</string>
+    <string name="terminal_arm_input">武装输入</string>
+    <string name="terminal_composer_label">命令（回车发送）</string>
+    <string name="terminal_ctrl_c">Ctrl-C</string>
 </resources>

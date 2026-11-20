@@ -2,11 +2,25 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — 2026-10-20 |
+| **Status** | Accepted — 2026-10-20 · **EXECUTED (the UI half shipped) — 2026-11-20** |
 | **Phase** | gaps-and-polish Phase 5D (A3.18 — terminal input; the phone is view-only by gate today) |
 | **Deciders** | Ernest (ruling path: the Phase-5 instruction, as ADR-020/021) + implementation session |
 | **Governs** | `features/terminal/port/TerminalPort.kt` (INV-9 typed surface), `data/session/TerminalController.kt`, `core/transport` `V4Plane` terminal methods, `architectural.md` §13.3 row `terminal`, §21, §26 row T23 |
 | **Supersedes** | TerminalPort's "There is NO write path anywhere in this port" (narrowed to "no write path outside the ADR-022 armed composer") |
+
+> **Execution note (2026-11-20, pass-0 Phase 9 / G104).** The port members, the transport
+> methods and the mock's write-echo handlers had shipped with the ADR, but ZERO UI surface
+> existed — the tier was dormant and the shipped copy claimed the absolute view-only
+> posture this ADR superseded. The UI half now ships: the persisted second opt-in
+> (`AppPreferences.terminalInputOptIn`, proto field 29) behind the device-credential
+> confirm (`DeviceCredentialConfirm` — BiometricPrompt with the DEVICE_CREDENTIAL
+> fallback; fail-closed below API 28 or without a host), the injected confirm seam
+> (`AppContainer.terminalInputCredentialConfirm`), the Arm affordance + armed
+> banner + badge + single-line composer (Enter → `\r`, Ctrl-C → `\u0003`) on
+> `TerminalScreen`, and the auto-disarm set completed (detach + **exit** + background +
+> 10-min idle). The view-only copy was corrected on both planes. Pinned by
+> `TerminalArmGateTest` (unchanged), `TerminalArmComposerTest`, the gate-3 Settings pins,
+> and the mock write-echo round-trip on the rig.
 
 ## Context
 

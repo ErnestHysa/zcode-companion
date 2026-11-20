@@ -151,7 +151,10 @@
 <string name="settings_auto_reconnect">自动重连检查</string>
 <string name="settings_auto_reconnect_sub">应用在后台时，大约每 15 分钟检查一次，并在网络恢复后重新连接。</string>
 <string name="settings_terminal_opt_in">终端（仅查看）</string>
-<string name="settings_terminal_opt_in_sub">显示桌面终端的只读流（对话中的“终端”入口）。无法在其中输入任何内容。这是敏感界面 — 除非需要，否则请保持关闭。</string>
+<string name="settings_terminal_opt_in_sub">显示桌面终端的输出流（对话中的“终端”入口）。输出是只读的；输入需要下方更严格的第二重开关。这是敏感界面 — 除非需要，否则请保持关闭。</string>
+<string name="settings_terminal_input_opt_in">允许向终端输入</string>
+<string name="settings_terminal_input_opt_in_sub">第二重开关（ADR-022）：允许你在这台手机上向已连接的桌面 shell 输入。开启需要你的设备凭据确认，且每个会话都必须先在终端页面上武装，任何按键才会到达 shell。除非需要，否则请保持关闭。</string>
+<string name="settings_terminal_input_confirm_title">确认终端输入</string>
 <string name="settings_honest_push">通知会在应用使用期间或启用“实时连接”时送达。ZCode 的中继不提供推送服务，因此两者都关闭时，您将在下次打开应用时看到更新。</string>
     <string name="settings_live_window">实时连接窗口</string>
     <string name="settings_live_window_sub">后台 %1$s 后自动断开。窗口越长耗电越多。</string>

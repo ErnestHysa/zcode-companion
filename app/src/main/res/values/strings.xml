@@ -168,7 +168,10 @@
 <string name="settings_auto_reconnect">Auto-reconnect checks</string>
 <string name="settings_auto_reconnect_sub">While the app is backgrounded, check about every 15 minutes and reconnect if the network is back.</string>
 <string name="settings_terminal_opt_in">Terminal (view-only)</string>
-<string name="settings_terminal_opt_in_sub">Show a read-only stream of a desktop terminal (the "Terminal" entry in a conversation). Nothing can be typed into it. This is a sensitive surface — keep it off unless you need it.</string>
+<string name="settings_terminal_opt_in_sub">Show a stream of a desktop terminal (the "Terminal" entry in a conversation). Output is read-only; typing is a separate, stricter opt-in below. This is a sensitive surface — keep it off unless you need it.</string>
+<string name="settings_terminal_input_opt_in">Allow typing into the terminal</string>
+<string name="settings_terminal_input_opt_in_sub">Second opt-in (ADR-022): lets you type into the attached desktop shell from this phone. Turning it on requires your device credential, and each session must be armed on the terminal screen before any keystroke reaches the shell. Keep it off unless you need it.</string>
+<string name="settings_terminal_input_confirm_title">Confirm terminal input</string>
 <string name="settings_honest_push">Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode\'s relay offers no push service, so with both off you\'ll see updates the next time you open the app.</string>
     <string name="settings_live_window">Live-connection window</string>
     <string name="settings_live_window_sub">Auto-disconnect after %1$s in the background. Longer windows use more battery.</string>

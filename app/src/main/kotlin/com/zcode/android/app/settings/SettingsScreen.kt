@@ -1170,6 +1170,29 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
+    // ADR-022 gate 3 (G104 executed): the credential-confirmed INPUT opt-in — the
+    // second, stricter opt-in. Flipping ON requires the device-credential confirm
+    // (BiometricPrompt with the DEVICE_CREDENTIAL fallback; the injected seam is
+    // the unit-test pin); a refused/absent confirm FAILS CLOSED. OFF never prompts.
+    val credentialConfirm = container.terminalInputCredentialConfirm
+    SwitchRow(
+        title = stringResource(R.string.settings_terminal_input_opt_in),
+        subtitle = stringResource(R.string.settings_terminal_input_opt_in_sub),
+        tag = "settings_terminal_input_opt_in",
+        checked = prefs.terminalInputOptIn,
+        onToggle = { want ->
+            scope.launch {
+                if (want) {
+                    val granted = credentialConfirm?.invoke(context.getString(R.string.settings_terminal_input_confirm_title)) ?: false
+                    container.terminalPort.setInputOptIn(enabled = true, granted = granted)
+                } else {
+                    // OFF never prompts; the controller disarms now (ADR-022 layer 3).
+                    container.terminalPort.setInputOptIn(enabled = false, granted = false)
+                }
+            }
+        },
+    )
+
     // §24.4 honest statement (mandatory copy).
     Text(
         text = stringResource(R.string.settings_honest_push),

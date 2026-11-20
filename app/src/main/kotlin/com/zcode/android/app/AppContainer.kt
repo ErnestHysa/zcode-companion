@@ -297,6 +297,18 @@ class AppContainer(context: Context) {
     )
 
     /**
+     * ADR-022 gate 3 (G104 executed): the injected credential-confirm seam for the
+     * terminal INPUT opt-in — the Settings row consults this before flipping the
+     * gate ON. The production default resolves the host FragmentActivity at confirm
+     * time and runs the BiometricPrompt with the DEVICE_CREDENTIAL fallback
+     * (DeviceCredentialConfirm); UI tests inject a fake here. A null/false result
+     * FAILS CLOSED (the gate never arms without the confirm, INV-14).
+     */
+    var terminalInputCredentialConfirm: (suspend (reason: String) -> Boolean)? = { reason ->
+        host()?.let { com.zcode.android.app.settings.DeviceCredentialConfirm.confirm(it, reason) } ?: false
+    }
+
+    /**
      * AAP-3 (android-gaps roadmap; §14.2 T4, §37): the foreground GitHub-Releases
      * update check. The connection center triggers it on entry (no polling); the
      * gate is `desktop.version > CompatibilityGate.MAX_TESTED_DESKTOP` AND a newer

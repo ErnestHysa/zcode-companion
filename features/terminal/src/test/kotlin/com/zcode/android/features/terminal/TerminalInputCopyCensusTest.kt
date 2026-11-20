@@ -5,6 +5,8 @@ import android.content.Context
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.io.File
 
 /**
@@ -14,6 +16,8 @@ import java.io.File
  * posture the accepted ADR superseded. With the tier shipped, the copy states
  * the honest, gated posture.
  */
+@RunWith(androidx.test.ext.junit.runners.AndroidJUnit4::class)
+@Config(sdk = [30])
 class TerminalInputCopyCensusTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()

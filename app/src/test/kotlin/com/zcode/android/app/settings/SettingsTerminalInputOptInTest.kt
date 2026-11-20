@@ -76,7 +76,7 @@ class SettingsTerminalInputOptInTest {
             rule.onAllNodesWithTag("settings_terminal_input_opt_in").fetchSemanticsNodes()
                 .firstOrNull()?.config?.get(SemanticsProperties.ToggleableState) == ToggleableState.On
         }
-        assertEquals(1, prompts, "the ON flip prompted exactly once")
+        assertEquals("the ON flip prompted exactly once", 1, prompts)
         rule.onNodeWithTag("settings_terminal_input_opt_in").performClick()
         rule.waitUntil(5_000) {
             rule.onAllNodesWithTag("settings_terminal_input_opt_in").fetchSemanticsNodes()
