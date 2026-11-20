@@ -46,22 +46,28 @@ class Pass0Phase8PollCadenceTest {
         runCurrent()
         assertEquals(1, port.runReads, "the initial refresh is the only read so far")
 
-        // No tick inside the first 29 s (the pre-fix drum ticked at 8 s and 16 s and 24 s).
-        advanceTimeBy(29_000)
+        // The debounced revision-follower's initial pass (~400 ms) is a separate,
+        // legitimate reader — let it land before pinning the ticker's windows.
+        advanceTimeBy(1_000)
+        runCurrent()
+        val baseline = port.runReads
+
+        // No TICK inside the first ~29 s (the pre-fix drum ticked at 8 s and 16 s and 24 s).
+        advanceTimeBy(28_000)
         runCurrent()
         assertEquals(
-            1, port.runReads,
+            baseline, port.runReads,
             "F-P1-D: a poll tick fired before the 30 s floor — the 8 s drum face (reads=${port.runReads})",
         )
 
         // The first tick lands at the 30 s floor; the run is still live so the drum continues.
-        advanceTimeBy(1_000)
+        advanceTimeBy(2_000)
         runCurrent()
-        assertEquals(2, port.runReads, "exactly one tick at the 30 s floor")
+        assertEquals(baseline + 1, port.runReads, "exactly one tick at the 30 s floor")
 
         // The next window: exactly one more tick — no re-acceleration.
         advanceTimeBy(30_000)
         runCurrent()
-        assertEquals(3, port.runReads, "exactly one tick per 30 s window")
+        assertEquals(baseline + 2, port.runReads, "exactly one tick per 30 s window")
     }
 }

@@ -127,11 +127,12 @@ class WorkflowRunsVmTest {
         runCurrent()
         val before = port.calls.count { it == "runs" }
         port.runs = listOf(run("r1", WorkflowRunStatus.COMPLETED))
-        advanceTimeBy(8_500)
+        // F-P1-D: the ticker's floor is now 30 s (was 8 s) — the window crosses it.
+        advanceTimeBy(30_500)
         runCurrent()
         assertTrue(port.calls.count { it == "runs" } > before, "the ticker re-read the runs")
         val settled = port.calls.count { it == "runs" }
-        advanceTimeBy(20_000)
+        advanceTimeBy(60_000)
         runCurrent()
         assertEquals(settled, port.calls.count { it == "runs" }, "no further ticks once nothing is live")
     }
@@ -182,7 +183,7 @@ class WorkflowRunsVmTest {
         runCurrent()
         kotlin.test.assertTrue(vm.runDeltasFlowing.value, "the plane collector processed the delta before the window")
         // Let the debounced revision-follower's initial pass fire (a distinct source
-        // of runs reads — the WINDOW being pinned is the poll ticker's 8 s cadence).
+        // of runs reads — the WINDOW being pinned is the poll ticker's 30 s floor (F-P1-D)).
         advanceTimeBy(1_000)
         runCurrent()
         val before = port.calls.count { it == "runs" }

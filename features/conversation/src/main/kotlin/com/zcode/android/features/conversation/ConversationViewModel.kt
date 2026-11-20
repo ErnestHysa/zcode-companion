@@ -1034,7 +1034,11 @@ class ConversationViewModel(
             if (live && !_runDeltasFlowing.value && workflowTicker?.isActive != true) {
                 workflowTicker = scope.launch {
                     while (true) {
-                        kotlinx.coroutines.delay(8_000)
+                        // F-P1-D: the ≥30 s floor — the old 8 s drum fired 48
+                        // conversationWorkflowRunsV4 reads in one ~6.5-min session,
+                        // continuously while idle/backgrounded. The delta plane (G51)
+                        // replaces this poll entirely when it flows.
+                        kotlinx.coroutines.delay(POLL_FLOOR_MS)
                         // G51: a delta arriving mid-window ends the ticker immediately.
                         if (_runDeltasFlowing.value) break
                         val latest = port.fetchWorkflowRuns(taskId) ?: break
@@ -1651,6 +1655,12 @@ class ConversationViewModel(
 
         /** §14.3: a pending send older than this renders as degraded, never as progress. */
         const val PENDING_MAX_LIFETIME_MS = 60_000L
+
+        /**
+         * F-P1-D: the live-run poll ticker's cadence floor — the old 8 s drum fired
+         * 48+ `conversationWorkflowRunsV4` reads per ~6.5-min session even fully idle.
+         */
+        const val POLL_FLOOR_MS = 30_000L
     }
 }
 
