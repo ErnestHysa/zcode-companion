@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * View-only terminal controller (§21, Phase 9.3) — binds the transport's
- * terminal channel surface. PRODUCT RULES (normative):
- *  - the phone may `create` + `dispose` and READ the data/exit events ONLY —
- *    the transport type exposes no `write`/`resize` (INV-9 by construction);
+ * Terminal controller (§21, Phase 9.3) — binds the transport's terminal channel
+ * surface. PRODUCT RULES (normative):
+ *  - the phone may `create` + `dispose` and READ the data/exit events; the ONLY
+ *    write path is the ADR-022 armed tier — `write`/`resize` check(armed) and
+ *    throw while disarmed (zero wire calls, the TerminalArmGateTest pin);
  *  - output is a bounded RING (512 KiB, drop-oldest — §21/§28.7), decoded to
  *    styled lines off the caller's thread at snapshot time (SGR state carries
  *    across appends/chunks);
@@ -149,6 +150,8 @@ class TerminalController(
                 val current = terminalId
                 if (current != null) {
                     _state.value = State.Exited(current, code)
+                    // ADR-022 gate 4: the arm is per-attach — the session's exit ends it.
+                    disarm()
                 }
             }
             log.info("terminal.attached", "id=$id")

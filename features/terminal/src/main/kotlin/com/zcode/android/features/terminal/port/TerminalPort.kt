@@ -4,12 +4,14 @@ import com.zcode.android.core.common.ansi.AnsiParser
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Consumer-side port for the §21 view-only terminal (INV-2/INV-6: no transport
- * types). SECURITY NORMATIVE (§21/§13.3): the terminal is an arbitrary-shell
+ * Consumer-side port for the §21 terminal (INV-2/INV-6: no transport types).
+ * SECURITY NORMATIVE (§21/§13.3 + ADR-022): the terminal is an arbitrary-shell
  * surface — the feature renders ONLY when (1) the endpoint hello declares
  * `localTerminal === true`, (2) the user opted IN via Settings (default OFF),
  * and (3) the attach authorization probe succeeds; any refusal renders the
- * disabled/fallback state. There is NO write path anywhere in this port.
+ * disabled/fallback state. The read posture is view-only; the ONLY write path
+ * is the ADR-022 armed composer (inputOptIn + per-attach arm gate `write`
+ * and `resize` — both throw while disarmed, INV-9 as narrowed by the ADR).
  */
 interface TerminalPort {
 
@@ -52,6 +54,19 @@ interface TerminalPort {
 
     /** Disarm now (detach/exit/background/expiry). */
     fun disarm()
+
+    // ---------------------------------------------------------------- ADR-022 (G104 executed): the armed write tier
+
+    /**
+     * Write one keystroke chunk to the attached shell. Reachable ONLY while an
+     * arm is held — the controller's typed gate throws while disarmed (the
+     * TerminalArmGateTest pin: zero wire calls). Enter sends `\r`, Ctrl-C
+     * sends `\u0003` — the composer composes these; nothing else exists.
+     */
+    suspend fun write(data: String)
+
+    /** Resize the attached grid; rides the same arm (cosmetic, but still a write). */
+    suspend fun resize(cols: Int, rows: Int)
 
     sealed class TerminalState {
         data object Idle : TerminalState()

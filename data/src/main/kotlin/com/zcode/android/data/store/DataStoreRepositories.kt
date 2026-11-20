@@ -119,6 +119,8 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         conversationCacheEnabled = if (hasConversationCacheEnabled()) conversationCacheEnabled else true,
         autoReconnectProbe = if (hasAutoReconnectProbe()) autoReconnectProbe else false,
         terminalOptIn = if (hasTerminalOptIn()) terminalOptIn else false,
+        // ADR-022 gate 3 (additive-first: unset optional field → the domain default OFF).
+        terminalInputOptIn = if (hasTerminalInputOptIn()) terminalInputOptIn else false,
         selectedEndpointId = if (hasSelectedEndpointId()) selectedEndpointId else null,
         liveConnectionTimeoutMinutes = if (hasLiveConnectionTimeoutMinutes()) liveConnectionTimeoutMinutes else 30,
         // Phase 4F (H1.4-phase1): additive-first — unset → the pre-Phase-4F behavior.
@@ -189,6 +191,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setConversationCacheEnabled(conversationCacheEnabled)
             .setAutoReconnectProbe(autoReconnectProbe)
             .setTerminalOptIn(terminalOptIn)
+            .setTerminalInputOptIn(terminalInputOptIn)
             .setThemeMode(themeMode.name)
             .setNotifyApprovals(notifyApprovals)
             .setNotifyTaskOutcomes(notifyTaskOutcomes)

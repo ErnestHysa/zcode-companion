@@ -100,17 +100,32 @@ class DefaultTerminalPort(
     override val inputOptIn: StateFlow<Boolean> get() = controller.inputOptIn
     override val armed: StateFlow<Boolean> get() = controller.armed
 
+    init {
+        // G104 executed: layer 3 is a PERSISTED Settings row — a fresh process with
+        // the pref ON restores the runtime gate (the credential confirmed the flip
+        // once; the arm (layer 4) is always per-attach and never persisted).
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
+            preferences.observe().collect { controller.setInputOptIn(it.terminalInputOptIn) }
+        }
+    }
+
     /**
      * Layer 3: the SECOND opt-in — the credential result (`granted`) gates the flip;
-     * a refused/cancelled prompt leaves it OFF. Turning it off never prompts.
+     * a refused/cancelled prompt leaves it OFF (persisted, so a granted flip
+     * survives process death). Turning it off never prompts and disarms now.
      */
     override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {
         if (enabled && !granted) return
+        preferences.update { it.copy(terminalInputOptIn = enabled) }
         controller.setInputOptIn(enabled)
+        log.info("terminal.inputOptIn", "enabled=$enabled granted=$granted")
     }
 
     override suspend fun arm() = controller.arm()
     override fun disarm() = controller.disarm()
+
+    override suspend fun write(data: String) = controller.write(data)
+    override suspend fun resize(cols: Int, rows: Int) = controller.resize(cols, rows)
 }
 
 // ---------------------------------------------------------------- git (§9.4)

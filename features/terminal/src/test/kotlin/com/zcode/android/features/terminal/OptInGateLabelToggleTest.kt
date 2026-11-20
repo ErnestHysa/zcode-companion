@@ -45,6 +45,8 @@ class OptInGateLabelToggleTest {
         override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {}
         override suspend fun arm() {}
         override fun disarm() {}
+        override suspend fun write(data: String) {}
+        override suspend fun resize(cols: Int, rows: Int) {}
     }
 
     @Test

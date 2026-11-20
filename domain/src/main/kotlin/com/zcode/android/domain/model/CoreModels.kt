@@ -218,6 +218,10 @@ data class AppPreferences(
     val autoReconnectProbe: Boolean = false,
     /** §21 view-only terminal opt-in — default OFF (terminal = critical sensitivity, §13.3). */
     val terminalOptIn: Boolean = false,
+    /** ADR-022 gate 3: the credential-confirmed terminal INPUT opt-in — default OFF,
+     * flipped ON only behind the device-credential confirm (the arm, layer 4, is
+     * per-attach and never persisted). */
+    val terminalInputOptIn: Boolean = false,
     /** §11.6 selected (active) endpoint — null = the paired relay endpoint (Phase 10). */
     val selectedEndpointId: String? = null,
     /** §24.5 Live-connection FGS auto-timeout in minutes (0 = no timeout). FIELD

@@ -49,6 +49,8 @@ class TerminalCopyTest {
         override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {}
         override suspend fun arm() {}
         override fun disarm() {}
+        override suspend fun write(data: String) {}
+        override suspend fun resize(cols: Int, rows: Int) {}
     }
 
     private fun clipboard(): ClipboardManager =

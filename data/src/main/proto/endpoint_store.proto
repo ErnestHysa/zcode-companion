@@ -59,4 +59,5 @@ message AppPreferencesProto {
   optional string whats_new_version_name = 26; // G43-P24
   optional string whats_new_notes = 27; // G43-P24
   optional bool whats_new_shown = 28; // G43-P24: the one-time sheet consumed (default true = nothing pending)
+  optional bool terminal_input_opt_in = 29; // ADR-022 gate 3: the credential-confirmed terminal input opt-in (default OFF)
 }
