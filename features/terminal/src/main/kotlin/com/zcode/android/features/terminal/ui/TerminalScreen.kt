@@ -124,10 +124,18 @@ fun TerminalScreen(
             )
             state is TerminalPort.TerminalState.CapabilityOff -> StateCard(
                 stringResource(R.string.terminal_not_exposed),
+                // N-CC-1: the capability may appear after a reconnect — attach() re-runs
+                // the hello gate, so a labeled re-probe is an honest recovery affordance.
+                retry = { scope.launch { port.attach() } },
+                retryLabel = stringResource(R.string.terminal_attach),
             )
             state is TerminalPort.TerminalState.Refused -> StateCard(
                 stringResource(R.string.terminal_refused, (state as TerminalPort.TerminalState.Refused).reason.take(140)),
                 retry = { scope.launch { port.attach() } },
+                // N-CC-1: the Refused branch is the ONLY StateCard retry that forgot its
+                // label — the pill worked (the pass-47 receipt) but rendered and spoke
+                // NOTHING (TalkBack heard an empty button).
+                retryLabel = stringResource(R.string.terminal_attach),
             )
             state is TerminalPort.TerminalState.Idle -> StateCard(stringResource(R.string.terminal_not_attached), retry = { scope.launch { port.attach() } }, retryLabel = stringResource(R.string.terminal_attach))
             state is TerminalPort.TerminalState.Attaching -> StateCard(stringResource(R.string.terminal_attaching))
@@ -234,7 +242,11 @@ private fun StateCard(text: String, retryLabel: String? = null, retry: (() -> Un
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         extra?.invoke()
-        retry?.let { ZCodeButton(onClick = it) { Text(retryLabel ?: "") } }
+        retry?.let {
+            ZCodeButton(onClick = it, modifier = Modifier.testTag("terminal_retry")) {
+                Text(retryLabel ?: "")
+            }
+        }
     }
 }
 
