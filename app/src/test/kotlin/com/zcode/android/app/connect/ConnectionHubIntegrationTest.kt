@@ -386,9 +386,12 @@ class ConnectionHubIntegrationTest {
         withTimeout(10_000) {
             hub.sessionHasMoreHistory(task.taskId).first { it }
         }
-        // Window metadata flows for the UI strip.
+        // Window metadata flows for the UI strip. F-P36-A/N-BM-1: the total is the
+        // manager's STORE-derived session extent (maxRowId - firstRowId + 1 = 5007 —
+        // the window carries ids 5000..5007 over a session starting at 1), not the
+        // mock's window-size fallback (8) the old subscribe-time mirror pinned.
         org.junit.Assert.assertEquals(
-            8L,
+            5007L,
             hub.sessionTotalRows(task.taskId).first(),
         )
         // The §19.4 backward page actually fetches older rows.
