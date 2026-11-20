@@ -32,11 +32,11 @@ class TerminalRefusalFaceTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun port(state: TerminalPort.TerminalState, onAttach: () -> Unit = {}) = object : TerminalPort {
+    private fun port(initial: TerminalPort.TerminalState, onAttach: () -> Unit = {}) = object : TerminalPort {
         var attachCalls = 0
         override val optIn = MutableStateFlow(true)
         override suspend fun setOptIn(enabled: Boolean) {}
-        override val state = MutableStateFlow<TerminalPort.TerminalState>(state)
+        override val state = MutableStateFlow<TerminalPort.TerminalState>(initial)
         override val snapshot = MutableStateFlow(TerminalPort.TerminalSnapshot(emptyList(), emptyList(), 0, 0))
         override suspend fun attach(): TerminalPort.TerminalState {
             attachCalls++

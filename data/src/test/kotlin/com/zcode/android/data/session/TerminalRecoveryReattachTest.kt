@@ -155,7 +155,7 @@ class TerminalRecoveryReattachTest {
         c.setInputOptIn(true)
         c.arm()
         assertTrue(c.armed.value, "precondition: armed")
-        exitHandler.invoke(0)
+        exitHandler!!.invoke(0)
         assertTrue(c.state.value is TerminalController.State.Exited)
         assertEquals(live.terminalId, (c.state.value as TerminalController.State.Exited).terminalId)
         assertFalse(c.armed.value, "the session's exit ends its arm (the G104 static absence)")

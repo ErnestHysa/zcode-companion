@@ -1,6 +1,5 @@
 package com.zcode.android.features.terminal
 
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -95,7 +94,7 @@ class TerminalArmComposerTest {
         rule.onNodeWithTag("terminal_input_armed_banner").assertExists("the armed banner stays visible while armed")
         rule.onNodeWithText("INPUT ARMED").assertExists("the header badge swaps to the armed posture")
         rule.onNodeWithTag("terminal_composer").performTextInput("ls")
-        rule.onNodeWithTag("terminal_composer").performImeAction(ImeAction.Send)
+        rule.onNodeWithTag("terminal_composer").performImeAction()
         rule.waitUntil(5_000) { port.writes.isNotEmpty() }
         assertEquals(listOf("ls\r"), port.writes.toList())
         assertTrue(port.armCalls >= 1)
