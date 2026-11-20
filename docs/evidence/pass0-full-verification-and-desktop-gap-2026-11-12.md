@@ -11502,7 +11502,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-19 |
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ✓ DONE 2026-11-19 |
 | 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ✓ DONE 2026-11-20 |
-| 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ☐ |
+| 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-20 |
 | 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ☐ |
 | | **Total** | **86** | **15** | **37** | **34** | | |
 
@@ -12124,7 +12124,7 @@ Theme: the terminal channel's recovery half (the F-P13-A family on the terminal 
 refusal face's a11y, and the ADR-022 decision. Order inside the phase: **F-P48-A → N-CC-1 →
 G104.** F-P48-A CONSUMES Phase 1's CONNECTED-transition hook (the one cross-phase edge).
 
-- [ ] **F-P48-A (P3) — the terminal stream does not survive a transport recovery — the LIVE
+- [x] **F-P48-A (P3) — the terminal stream does not survive a transport recovery — the LIVE
   face persists over the dead stream:** ANY large terminal data stream drops the conversation
   transport ~1 s after attach (TRIGGER CLOSED pass 49 — FRAME-COUNT class, the phone reader:
   the 2400-frame `big` arm dropped at ~6-26 frames paced AND unpaced; `bigone`'s identical
@@ -12139,7 +12139,7 @@ G104.** F-P48-A CONSUMES Phase 1's CONNECTED-transition hook (the one cross-phas
   face flips) after a transport reconnect while state==Live; a live leg under
   MOCK_TERMINAL_OUT=big recovers the stream (or renders the honest face) without manual
   detach. (2 stamps — the trigger closer + the eviction face.)
-- [ ] **N-CC-1 (P4) — the terminal REFUSAL face's Retry button renders BLANK:** the Refused
+- [x] **N-CC-1 (P4) — the terminal REFUSAL face's Retry button renders BLANK:** the Refused
   branch calls `StateCard(text, retry = {…})` WITHOUT `retryLabel` (`TerminalScreen.kt:128-131`)
   — the recovery affordance is an invisible/unlabeled pill (it WORKS; TalkBack hears nothing).
   The Idle branch passes `retryLabel = terminal_attach` correctly; the CapabilityOff branch
@@ -12147,7 +12147,7 @@ G104.** F-P48-A CONSUMES Phase 1's CONNECTED-transition hook (the one cross-phas
   at the Refused call site (one line); consider a retry affordance for CapabilityOff.
   **Accept:** a compose harness asserting the refusal face renders a labeled Attach button +
   the a11y label exists.
-- [ ] **G104 (P3) — the ADR-022 armed-composer INPUT TIER is DORMANT at HEAD:** the port
+- [x] **G104 (P3) — the ADR-022 armed-composer INPUT TIER is DORMANT at HEAD:** the port
   members (inputOptIn/arm/disarm/write/resize + the check(armed) gate + TerminalArmGateTest),
   the transport methods, and the MOCK write-echo/resize handlers ALL SHIPPED, but ZERO UI
   surface exists (no Settings input row, no Arm/composer/banner in TerminalScreen) and the
@@ -12161,9 +12161,7 @@ G104.** F-P48-A CONSUMES Phase 1's CONNECTED-transition hook (the one cross-phas
   round-trip pin); if re-opened: the copy/census corrected. TerminalArmGateTest stays either
   way.
 
-**Phase 9 exit gate: ☐** fresh rig: the big-arm stream recovers after a forced transport drop
-(or the face flips honestly) WITHOUT manual detach (F-P48-A); the refusal Retry is labeled
-(N-CC-1); the G104 decision executed and receipted.
+**Phase 9 exit gate: ☑ PASSED 2026-11-20** (fresh zcode-a16 cold boot + gen1-big/gen2-plain/gen2b/gen3-capoff relays — receipts in the Phase-9 fix-round record below). fresh rig: the big-arm bounded loop exhausted into the honest face WITHOUT manual detach (F-P48-A: recoveryReattach ×3 → recoveryExhausted, 4 arg-exact creates); the CLEAN recovery re-fired the stream (youngDeaths=0 aged-reset, the ring re-rendered); the refusal Retry is labeled (N-CC-1: the Refused + CapabilityOff faces both carry the Attach button); the G104 decision EXECUTED (the shipped tier: the granted credential flip on the wire, Arm→composer→`ls\r` echo round-trip, Ctrl-C `\u0003`, background disarm, the recovered session disarmed).
 
 ---
 
@@ -13574,7 +13572,7 @@ logcat restarted `-T 1`; a fresh MOCK_GEN_NONCE per generation; the relay under
 
 Open F: **1** (was 7; −6: F-P35-A, F-P36-A, F-P0-C, F-P11-B, F-P2-B, F-P1-D) · Open
 smalls: **2** (was 6; −4: N-BM-1, N-BP-1, N-BP-2, N-CB-1) · Open G: **20** (unchanged — no
-G rows in Phase 8). **Phases 1–8 are COMPLETE — 65/86 roadmap rows closed; Phase 9 next
+G rows in Phase 8). **Phases 1–9 are COMPLETE — 68/86 roadmap rows closed; Phase 10 next
 (Terminal plane — 3 rows: F-P48-A → N-CC-1 → G104).**
 
 **2026-11-20, verified at 02:05:13 (hh-mm-ss, UTC; the docs commit follows).** Verified by
@@ -13590,3 +13588,140 @@ commit shas in the same session. NOTHING pushed.
 (`mock-p8-phase8-gen3b-c2d8e9`) KILLED at round end (the receipts complete; `pkill -f
 MockRelayMainKt` run — nothing left holding :18100). Receipts: /tmp/pass8-rig/ (d01–d71
 dumps + s00–s07 screenshots + relay-g1/g2/g3/g3b logs + the db-main/db-wal pull pair).
+
+---
+
+# pass-0 Remediation — Phase 9 fix-round record (APPENDED 2026-11-20)
+
+> **Phase 9 — Terminal plane: 3/3 rows FIXED, exit gate PASSED.** Branch `fix/pass0`
+> (cut from main `80451814`; the phase ran on top of the Phases 1–8 commits, the pre-phase
+> tree = `6e4431fa`). Eight fix/pin commits + this docs commit; every pin written TEST-FIRST
+> and RED-demonstrated at the pins commit, GREEN post-fix; the full-suite zero-new-names gate
+> passed (Android `testDebugUnitTest` + the six pure-JVM `test` modules); the APK rebuilt; the
+> exit-gate legs receipted live on a fresh zcode-a16 cold boot. Executed by GLM-5.3-Flash in
+> ZCode (Ernest's "begin phase 9, and only this phase" dispatch). NOTHING pushed — local
+> commits only.
+
+## F.1 — commits (one mechanism ≥ one commit)
+
+| Commit | Row(s) | Mechanism (one line) |
+| --- | --- | --- |
+| `1587c6bf` | **G104 (1/3)** | the ADR-022 write/resize members land on `TerminalPort` (the typed armed-composer surface, INV-9 as narrowed); `DefaultTerminalPort` delegates + persists layer 3 (`AppPreferences.terminalInputOptIn`, proto field 29, additive-first) mirroring into the controller; the exit listener disarms (the ADR's named static absence) |
+| `318d9077` + `831ecc0b` + `e8242056` | pins | the Phase 9 pin set (F-P48-A / N-CC-1 / G104 + the gate-3 persistence round-trip + the copy census) + two harness follow-ups |
+| `a2d92e6b` | **F-P48-A** | `TerminalController.onTransportConnected()` — the CONNECTED transition re-fires the attach for a Live session (silent detach of the stale Live — the old id is unreachable on the new connection — then Idle + fresh create + fresh listens); BOUNDED: young deaths (<60 s survival) cap at 3, the 4th exhausts into the honest `Refused` face; an aged Live resets the streak; the arm is per-attach (the recovered session starts disarmed); `DefaultTerminalPort` exposes the hook on its own IO scope and `AppContainer` composes it into the hub's existing `onConnected` hook beside the pairing consumer (Phase 1's surface) |
+| `be19e0ef` | **N-CC-1** | the Refused branch passes `retryLabel = terminal_attach` (the blank pill speaks nothing for TalkBack); CapabilityOff gains the SAME labeled re-probe (attach() re-runs the hello gate); the retry button carries the `terminal_retry` tag |
+| `e4904787` | **G104 (2/3)** | the tier's UI ships: the Arm affordance on Live (input opt-in held), the armed banner + the INPUT ARMED badge swap (the §21 persistent indicator is honest in both postures), the single-line composer (ASCII, no autocorrect, Enter sends `\r` via ImeAction.Send), the dedicated Ctrl-C (`\u0003`), the background auto-disarm (ON_STOP); Settings' second opt-in row behind the injected `terminalInputCredentialConfirm` seam (`DeviceCredentialConfirm` — BiometricPrompt, DEVICE_CREDENTIAL fallback, fail-closed <API 28 / no host); copy corrected on both planes (en + zh-rCN); drift duty (`facade/terminalWrite`+`facade/terminalResize` in consumed-surfaces.json) + the dated ADR-022 execution note |
+| `ffd4566b` | **G104 (3/3, the rig catch)** | the credential prompt drops its negative button — androidx FORBIDS negative text with DEVICE_CREDENTIAL allowed ("Negative text must not be set…" — the FIRST rig tap of the row FATALed the app twice); `promptInfo()` extracted + pinned by `DeviceCredentialPromptInfoTest` (the exact build REDs under Robolectric's real androidx validation) |
+
+## F.2 — pins (TEST-FIRST; shape fidelity)
+
+| Pin | RED (at `318d9077`) | GREEN |
+| --- | --- | --- |
+| `TerminalRecoveryReattachTest` (data, 6): the CONNECTED transition re-fires a Live attach (create + BOTH listens re-register + disarm); Idle no-op; the young-death cap exhausts into the honest Refused face (3 re-fires then the flip); an aged Live recovers with the counter reset; the exit event disarms (ADR-022); attach-while-Live stays a user-tap no-op | `:data` compile-fails on `onTransportConnected` (the established new-API RED class; the fix lands `a2d92e6b`) | 6/6 |
+| `TerminalRefusalFaceTest` (features/terminal, 4): the Refused face renders a LABELED Attach (+ the tap re-fires); CapabilityOff gains the labeled re-probe; Idle keeps its label | RUNTIME RED ×4 — `terminal_retry` absent, the "Attach" text absent (the blank-pill defect reproduced in the harness) | 4/4 |
+| `TerminalArmComposerTest` (features/terminal, 5): Arm renders on Live with the input opt-in (composer hidden while disarmed); with the opt-in OFF the tier is invisible; Arm reveals banner+composer+badge and the send rides the arm with `\r`; Ctrl-C writes `\u0003`; disarm hides the plane and restores VIEW-ONLY | RUNTIME RED ×4 (the 5th — opt-in-OFF-invisible — was GREEN pre-fix by construction) | 5/5 |
+| `TerminalInputCopyCensusTest` (features/terminal, 3): the Settings sub-copy no longer claims "Nothing can be typed into it"; the consent body states the honest gated posture (view-only + credential + arm); the tier strings exist in en + zh-rCN | RUNTIME RED ×3 (the copy lies still shipped) | 3/3 |
+| `AppPreferencesTerminalInputOptInRoundTripTest` (data, 4): default OFF (absent field); the granted flip round-trips; raw proto field 29; disk truth | GREEN at commit 1 (the field shipped with the surface — the contract guard) | 4/4 |
+| `SettingsTerminalInputOptInTest` (app, 3): the row renders default OFF and FAILS CLOSED without a confirm (the Robolectric ComponentActivity host → no production prompt); an injected granted confirm flips ON (one prompt) and OFF never prompts; a refused confirm stays OFF | `:app` compile-fails on `terminalInputCredentialConfirm` (the new-API RED class; the seam lands `e4904787`) | 3/3 |
+| `DeviceCredentialPromptInfoTest` (app, 1 — the rig catch): the PromptInfo builds WITHOUT a negative button while DEVICE_CREDENTIAL is allowed | RED against the SHIPPED bug (the pre-fix helper set the negative text → the exact `IllegalArgumentException` the rig FATALed with) | 1/1 |
+
+## F.3 — suite + gate
+
+- **Pre-phase baseline** (clean tree `6e4431fa`, full suite): 6 failing names — `:app`
+  ConnectionHubWritePathTest ×2 (U4 sendText + queue-edits CAS), ConnectionHubIntegrationTest
+  (open-conversation rows-window), `:features:conversation` RowActionsRoutingTest (stale
+  retry) + TimelineCallbackWiringTest (F27-B thumbnail tap), `:core:transport` StormTest
+  (oversized-envelope resync — the known load-flake class).
+- **Post-phase gate** (`--rerun-tasks`, full suite): `:app` + `:features:conversation` carried
+  3 of the 6 baseline names (sendText, RowActionsRouting, TimelineCallbackWiring); the other
+  two app names + StormTest passed this run. **ZERO new failing names.** JVM exit 0 (all six
+  pure-JVM modules). Task-failure list: test-failure tasks only; every Android module emitted
+  test XML (app 113 / data 60 / conversation 142 / tasks 42 / terminal 8 / …), the six JVM
+  modules included (mockzcode 56 / transport 35 / domain 46 / …).
+- The per-fix module runs (`commit1-modules`, `fp48a-green3`, `ncc1-green`, `g104-green*`)
+  carried only baseline names + one `RecoveryScenarioMatrixTest > S1` pool-load flake
+  (exonerated in isolation, exit 0).
+- **APK rebuilt** at the phase head: `app/build/outputs/apk/debug/app-debug.apk` — sha256
+  `a69f32ddca655d80…` (post-`ffd4566b`), versionCode 53 / 1.3.2. Mock jar rebuilt (no mock
+  changes this phase — the write-echo/resize/cap-off/big arms all shipped earlier).
+
+## F.4 — the exit gate (live receipts; fresh zcode-a16 cold boot `-no-snapshot-load`)
+
+Relay generations (NAT probe `nc -w3 -z 10.0.2.2 18100` before every leg — the pass-12
+`svc wifi disable` NAT-break gotcha struck once mid-round and was REVERSED, its ANR-storm
+cleared by the M.A0.2 recipe): gen1 `mock-p9-gen1-big` (MOCK_TERMINAL_OUT=big), gen2
+`mock-p9-gen2-plain`, gen2b `mock-p9-gen2b-plain`, gen3 `mock-p9-gen3-capoff`
+(MOCK_TERMINAL_CAP_OFF=1). Stored endpoints survived every swap (no re-pairing). Receipts
+anchored in the pulled logcat + relay logs; screenshots /tmp/pass0-p9/ (15 captures).
+
+- **(a) G104 gate 3 — PASSED (both polarities).** The Settings row "Allow typing into the
+  terminal" renders below the view opt-in (g104-settings-rows.png), default OFF. First tap
+  WITHOUT a device credential: the row stayed OFF and the app SURVIVED (after `ffd4566b`;
+  pre-fix this exact tap FATALed twice — the rig catch). PIN 1234 set → the tap raised the
+  REAL system credential prompt ("Confirm terminal input", the BiometricPrompt
+  DEVICE_CREDENTIAL view) → PIN entered → **the row flipped ON** and the wire logged
+  `terminal.inputOptIn :: enabled=true granted=true` (logcat 11:31:29) — the granted flip
+  receipted end-to-end through the injected seam.
+- **(b) F-P48-A — PASSED (both shapes).** gen1 (big): Attach → `terminal.create` (relay-12)
+  → the 2400-frame stream dropped the transport → the app recovered (relay-14) →
+  **`terminal.recoveryReattach :: youngDeaths=1`** — THE HOOK FIRED — fresh create on
+  relay-14 → the loop bounded exactly as pinned: youngDeaths=2 → 3 → **`terminal.
+  recoveryExhausted :: youngDeaths=4`** (WARN) with FOUR arg-exact creates on the relay log
+  and **the honest typed face rendered WITHOUT manual detach**: "Terminal is not available
+  on this connection: terminal stream dropped repeatedly after transport recovery — attach
+  again" + the LABELED Attach button (fp48a-honest-face.png). gen2 (plain): manual Attach →
+  Live; gen2 KILLED → gen2b up → the transport recovered → **`recoveryReattach ::
+  youngDeaths=0`** (the aged Live reset the streak) → the create re-fired on gen2b → **the
+  ring re-rendered the stream ("live — /bin/zsh" + rig-p47 lines) without manual detach**,
+  and the recovered session came back DISARMED (VIEW-ONLY badge, no composer — the
+  per-attach arm, ADR-022). fp48a-clean-recovery.png.
+- **(c) N-CC-1 — PASSED.** The exhausted Refused face renders the labeled Attach (leg b's
+  screenshot); gen3 (MOCK_TERMINAL_CAP_OFF=1): Detach → Attach → the CapabilityOff face
+  "This desktop does not expose a local terminal for remote connections." now carries the
+  **LABELED Attach re-probe** (the pass-47 census gap — the branch offered NO retry — is
+  closed on-device).
+- **(d) G104 armed tier — PASSED (the round-trip).** On the gen2 Live session the **"Arm
+  input"** affordance rendered (the input opt-in held from leg a); Arm → the **INPUT ARMED**
+  badge swap + the armed banner ("Input armed — what you type reaches the desktop shell.
+  …") + the single-line composer + Ctrl-C (g104-armed.png). Typed `ls` → Enter →
+  **`MOCK: terminal write args={"id":"term-1","data":"ls\r"}`** (arg-exact: Enter sent `\r`)
+  → **the mock's echo rendered IN THE RING** (`ls` + the carried `\r` — the round-trip
+  write→desktop→onDynamicData→ring proven). **Ctrl-C → `data:"\u0003"`** (arg-exact, the
+  ADR's one control sequence). HOME → return: the badge restored to VIEW-ONLY, the composer
+  gone, Arm re-offered — **the background auto-disarm receipted live** (the T23 lost-phone
+  window closes). g104-roundtrip.png.
+- **Robustness**: the pre-fix FATALs (2× IllegalArgumentException at 11:22/11:24) are the
+  RIG CATCH — receipted, fixed (`ffd4566b`), pinned; ZERO FATAL exceptions after the fix
+  install (logcat 11:29+). One SystemUI ANR boot-storm + one NAT-break ANR storm (the
+  pass-12 class, self-inflicted `svc wifi disable`) — both cleared by the standing recipes,
+  neither a leg failure.
+
+## F.5 — what was NOT driven (honesty)
+
+- The 10-minute idle arm expiry on the rig (a real 10-min wait) — the expiry is pinned at
+  the controller level (`TerminalArmGateTest`'s ARM_EXPIRY_MS window + the re-arm-on-write
+  contract) and the detach/exit/background disarms were all receipted live; a timed-idle rig
+  leg remains rig-debt for a future pass.
+- The DIRECT-transport recovery shape (the terminal hook fired on the RELAY recovery only;
+  the hook consumes the hub's CONNECTED transition, transport-agnostic by construction —
+  the direct path rides the same machine transition, pinned at the controller level).
+- The zh-rCN locale render of the new tier strings (the strings shipped + census-pinned for
+  BOTH locales; the on-device walk stayed en).
+
+## F.6 — verification stamp
+
+**2026-11-20, verified at 11:51:27 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's
+pass-0 Phase-9 dispatch ("begin phase 9, and only this phase… add tests… mark this phase as
+complete followed by date, year, time… add who verified this phase, model/llm and harness
+used… commit this whole phase… only local commits"). Phase-9 disposition: **3/3 rows FIXED +
+exit gate PASSED — the phase is COMPLETE.** Ledger statuses re-stamped with the commit shas
+in the same session. NOTHING pushed.
+
+**Rig left:** emulator zcode-a16 UP (the post-NAT-fix boot), ALL relays KILLED at round end
+(`pkill -f MockRelayMainKt` — nothing holds :18100; the app idles on the Tasks home with the
+stored MockBook endpoint, DISCONNECTED). Receipts: /tmp/pass0-p9/ (baseline + gate logs,
+15 screenshots incl. fp48a-honest-face / fp48a-clean-recovery / g104-armed /
+g104-roundtrip / g104-granted / g3-capoff-face, relay-g1/g2/g2b/g3 logs, ui dumps
+ui.xml–ui65.xml, logcat.log).
