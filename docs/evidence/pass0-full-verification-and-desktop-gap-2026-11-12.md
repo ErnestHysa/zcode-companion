@@ -11501,7 +11501,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ✓ DONE 2026-11-18 |
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-19 |
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ✓ DONE 2026-11-19 |
-| 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ☐ |
+| 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ✓ DONE 2026-11-20 |
 | 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ☐ |
 | 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ☐ |
 | | **Total** | **86** | **15** | **37** | **34** | | |
@@ -12054,7 +12054,7 @@ F-P2-B → F-P1-D.**
 
 ### Sub-phase 8A — paging & the strip
 
-- [ ] **F-P35-A (P3) — the Load-earlier error face is TOP-ANCHORED while the tap affordance is
+- [x] **F-P35-A (P3) — the Load-earlier error face is TOP-ANCHORED while the tap affordance is
   TAIL-ANCHORED** — a faulted page fetch gives the user at the tail ZERO visible feedback (the
   error renders as a lazy-list item at index 0/1, hundreds of rows above the tap point; the
   `older-loading` face shares the geometry). **Fix:** surface the error/retry in the PINNED
@@ -12062,7 +12062,7 @@ F-P2-B → F-P1-D.**
   SendNotice-keyed banner). **Accept:** a compose test with a faulting port loader asserting
   the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds (preserve
   the AL.E retry-success face).
-- [ ] **F-P36-A (P3) — the open-time prefetch race + the cache trim strand a stale
+- [x] **F-P36-A (P3) — the open-time prefetch race + the cache trim strand a stale
   hasMore=false:** the strip hides while head rows are CACHE-ABSENT and unreachable for the
   session (the page-path writer sets hasMore honestly-false at that instant, the next
   enforceBound trims the fetched head back to the 320 bound, and the mirror's only writer never
@@ -12072,46 +12072,46 @@ F-P2-B → F-P1-D.**
   manager's authoritative value at loadOlder completion). **Accept:** a repo harness paging to
   the floor with total > cache bound asserts the strip survives the post-page trim + the DB
   min(rowId) > windowFirstRowId invariant. (2 stamps.)
-- [ ] **N-BM-1 (P3) — the load-earlier strip total is a stale subscribe-time snapshot**
+- [x] **N-BM-1 (P3) — the load-earlier strip total is a stale subscribe-time snapshot**
   (re-receipted at HEAD with a FAITHFUL total; the end face is honest at HEAD — the fix is the
   live total). **Fix:** re-derive the total on page (or live-collect the manager's value).
   **Accept:** a pin — the total updates after a page lands.
 
 ### Sub-phase 8B — viewers & misc faces
 
-- [ ] **N-BP-1 (P3) — the Usage screen DOUBLE-applies the Scaffold `inner` padding** (the only
+- [x] **N-BP-1 (P3) — the Usage screen DOUBLE-applies the Scaffold `inner` padding** (the only
   viewer with two `padding(inner)` applications) → a ~400 px dead band that is ALSO A DEAD
   TOUCH ZONE (8 receipted attempts, zero re-queries). **Fix:** drop the second
   `.padding(inner)`. **Accept:** a compose test dragging from the band region asserts the list
   scrolls.
-- [ ] **N-BP-2 (P4) — Daily-trend x-labels render "2026-" for every row** (`day.date.take(5)`
+- [x] **N-BP-2 (P4) — Daily-trend x-labels render "2026-" for every row** (`day.date.take(5)`
   at `UsageScreen.kt:613` slices the ISO date). **Fix:** slice after the year (or format the
   full date). **Accept:** a pin on the label text.
-- [ ] **N-CB-1 (P4) — the trajectory sheet's FAULT face is an ETERNAL SPINNER:** the honest
+- [x] **N-CB-1 (P4) — the trajectory sheet's FAULT face is an ETERNAL SPINNER:** the honest
   unavailable face is structurally unreachable (`trajectoryLoading = trajectory == null &&
   showTrajectory` wins the `when`; every fetch fault renders an infinite loading bar — the
   typed fault receipted spinning through a full relay swap). **Fix:** derive loading from an
   explicit in-flight flag (or a tri-state) so trajectory==null renders the unavailable face.
   **Accept:** a compose harness with a faulting port asserting the unavailable face renders and
   the bar settles. (G100's named residual.)
-- [ ] **F-P0-C (P3) — the file viewer renders a SILENT BLANK panel on refused read**
+- [x] **F-P0-C (P3) — the file viewer renders a SILENT BLANK panel on refused read**
   (`FilesScreen.kt:225-237` — no error, no retry). **Fix:** a typed error face + WARN-to-UI.
   **Accept:** a pin asserting the refused face + retry. (3 stamps.)
-- [ ] **F-P11-B (P3) — the Live-connection window picker's selection never reflects in the row
+- [x] **F-P11-B (P3) — the Live-connection window picker's selection never reflects in the row
   subtitle in-session** (the Settings prefs projection doesn't re-collect after
   `preferencesRepository.update`; disk HAS the value). **Fix:** collect prefs via the live
   dataStore.data flow on the screen (or key the row on the pref). **Accept:** a pin — the
   subtitle updates after a write without re-entry (the lesser force-stop flush noted).
-- [ ] **F-P2-B (P3) — the post-unpair resume card claims "Paired · Connect" from a fakeLink**
+- [x] **F-P2-B (P3) — the post-unpair resume card claims "Paired · Connect" from a fakeLink**
   (`PairingViewModel.kt:50-56` — structurally guaranteed). **Fix:** reduce to a genuine
   unpaired state (no fakeLink). **Accept:** a pin — after unpair the card renders the honest
   unpaired state.
-- [ ] **F-P1-D (P3, observation) — an open conversation polls workflowRuns+plans every ~8 s
+- [x] **F-P1-D (P3, observation) — an open conversation polls workflowRuns+plans every ~8 s
   even idle/backgrounded** (52 polls in one gen2 log). **Fix:** subscribe-on-open + deltas
   (the capability is already declared) or a ≥30 s cadence. **Accept:** a poll-census leg
   showing the reduced cadence (or the delta path) on an idle conversation.
 
-**Phase 8 exit gate: ☐** fresh rig: the paging fault visible AT the tail + the retry success
+**Phase 8 exit gate: ☑ PASSED 2026-11-20** (zcode-a16 cold boot + gen1–gen3b relays — receipts in the Phase-8 fix-round record below). fresh rig: the paging fault visible AT the tail + the retry success
 preserved (F-P35-A); the strip survives the trim leg (F-P36-A); the trajectory fault face
 renders (N-CB-1); the Usage dead band gone (N-BP-1); dates render (N-BP-2); the file viewer's
 refused face (F-P0-C).
@@ -13404,3 +13404,189 @@ NOTHING pushed.
 (`mock-p7-gen6-g5w9`) KILLED at round end (the receipts complete; `pkill -f
 MockRelayMainKt` was run — nothing left holding :18100), app pid 3270 idle-CONNECTED on the
 synthetic conversation. Receipts: /tmp/p7/.
+
+# pass-0 Phase-8 fix-round record (APPENDED 2026-11-20 — the roadmap's remediation log; never edit the parts above)
+
+> **Phase 8 — Conversation timeline, paging & viewers (10 rows: Sub-phase 8A paging & the
+> strip, 8B viewers & misc faces).** Pins commit `bf96b0bc` (+ the harness-fix follow-ups
+> `974aeda8`/`cccea9f0`/`8ef1f320`/`1311f78a`/`644f65c2`/`4f3c4c58`) — RED at the pre-phase
+> tip `e8fd5c77`; the fixes `6e987313` (F-P35-A) → `eb68f666` (F-P36-A + N-BM-1, one shared
+> mechanism) → `b3e21bd2` (N-BP-1) → `66cf29f6` (N-BP-2) → `6aefa2ab` (N-CB-1) → `fa719fd8`
+> (F-P0-C) → `be3d8b08` (F-P2-B) → `7d523824` (F-P1-D) → `300bcae1` (the tail-window pin's
+> contract update — the batch owns the break) → `77888052` (`fix(mock)`: the
+> MOCK_FILE_READ_FAULT arm; jar+test green). One row closes WITHOUT a code change:
+> **F-P11-B** (below). Suite gate: the touched modules (`:app :data :domain
+> :features:conversation :features:files :features:pairing`) — **zero NEW failing names**
+> against the pre-phase baseline (the 3 recorded baseline names: TimelineCallbackWiringTest
+> F27-B, RowActionsRoutingTest stale-retry, ConnectionHubWritePathTest U4 — all pre-existing
+> at `e8fd5c77`, reproduced identically; every touched module emitted test XML; the only
+> FAILED tasks were the two test-task failures whose names are those baseline test names).
+> New pins at final HEAD: Pass0Phase8PagingStripTest ×4, Pass0Phase8TrimSurvivalTest ×3,
+> Pass0Phase8TrajectoryFaultTest ×2, Pass0Phase8FilesRefusedFaceTest ×2,
+> Pass0Phase8UsageGeometryTest ×3, Pass0Phase8LiveWindowSubtitleTest ×1,
+> Pass0Phase8UnpairStateTest ×2, Pass0Phase8PollCadenceTest ×1 — **18 pins GREEN** (33 with
+> the pre-existing suites that share the files). APK of record: `a1c6dea643d4202c` (sha256
+> prefix; app-debug, built at `77888052`).
+
+## 8.A — the per-row mechanisms (commit + pin shape)
+
+- **F-P35-A (`6e987313`) — the Load-earlier faces live in the PINNED strip.** The
+  StripBudget slot now carries all three faces: the fault AttentionStrip + Retry →
+  `onRetryOlder(window head)` (`conversation_older_error_strip`), the loading face
+  (`conversation_older_loading_strip`), and the tappable affordance
+  (`conversation_load_older_strip`); the in-list index-0/1 items are GONE and the
+  find-jump/tail-anchor header-item offsets (which indexed their rows) dropped. Pins ×4
+  (the fault face visible without scrolling; the pinned-slot retry re-fires; the AL.E
+  retry-success preserve; the loading face) — RED at `bf96b0bc`, GREEN at HEAD.
+- **F-P36-A + N-BM-1 (`eb68f666`) — the manager owns the paging plane, re-derived from the
+  store.** The page response's hasMore was honest only at its instant; the VM then wrote it
+  OVER its mirror of the manager's authoritative flow, and the next enforceBound
+  (snapshot/delta) evicted the fetched HEAD back to the cap — the strip hid while cache
+  min > window top, and NOTHING re-emitted (route re-entry did not heal; the find-JUMP was
+  the deterministic trigger). Single-writer now: the VM's page writes REMOVED; the manager
+  remembers the window firstRowId and `rederivePagingFromStore()` re-derives hasMore
+  (minCachedRowId > windowFirstRowId) + total (max(snapshot totalCount, extent)) after every
+  bound-changing apply — snapshots (post-trim), row upserts/removals, and the page apply
+  (the port calls the rederive after the store op). Repo gains `minCachedRowId`/
+  `maxCachedRowId`. Pins ×3 (real Room store + real manager): page-to-floor → the honest
+  hide; the delta trim → **the strip SURVIVES**; the total follows appends and the rewind
+  reset. RED class = the new-API compile-absence (the stash demonstration: `Unresolved
+  reference 'rederivePagingFromStore'` against pre-fix code — the vc51 Phase-2 recipe).
+  N-BM-1 rides the same mechanism: the total is the live extent, never the frozen
+  subscribe-time snapshot.
+- **N-BP-1 (`b3e21bd2`) — the Usage double `padding(inner)` is gone.** Pins ×2: the
+  differential-inset geometry leg (**a 100px top inset moved the content 200.0px pre-fix —
+  now ~100**) and the Accept's drag leg (a swipe STARTING in the band scrolls the list).
+- **N-BP-2 (`66cf29f6`) — the trend labels carry the month-day slice.** `take(5)` sliced the
+  ISO year ("2026-" for every row); `takeLast(5)` is the MM-DD slice (idempotent for
+  already-sliced shapes). Pin: the label carries "10-05", never "2026-".
+- **N-CB-1 (`6aefa2ab`, G100's named residual) — the trajectory loading is an EXPLICIT
+  in-flight flag.** The caller derived `loading = trajectory == null && showTrajectory` —
+  true EXACTLY when null, so the sheet's `when` could never reach `trajectory_unavailable`;
+  every fetch fault rendered an eternal bar (receipted spinning through a full relay swap).
+  The VM exposes `trajectoryLoading` (set around the fetch, cleared in finally); ZCodeApp
+  collects it. trajectory==null with the flag settled now renders the honest unavailable
+  face; reopen re-fires (the retry). Pins ×2: the flag true mid-flight and SETTLED on both
+  outcomes; the reopen re-fires. New-API RED class (the stash demonstration).
+- **F-P0-C (`fa719fd8`) — the file viewer's refused read renders the typed face + retry.**
+  The null-slice branch used to leave a SILENT BLANK panel (3 receipts). The read path is
+  shared (`reloadViewerText` — also the Retry's re-fire); the refused branch surfaces the
+  typed face (`files_text_error`, the localized refused copy — the port's mapped message
+  when present) and the Retry affordance (`files_text_retry`); a recovered read clears the
+  face. Pins ×2 (the refused face + the retry re-fires; the recovered read clears and
+  renders) — RED at `bf96b0bc`.
+- **F-P2-B (`be3d8b08`) — the fakeLink fabrication is gone.** UnpairConfirmed used to reduce
+  from `Connected(pendingLink ?: fakeLink())` — a manufactured link built solely to feed the
+  reducer. The reduce DISCARDS the source for this event today (the pass-3 claim's
+  "resume card claims Paired · Connect" face does not manifest at HEAD — the claim's
+  mechanism was a mis-read of the reduce), so the two contract pins were GREEN pre-fix by
+  design; the reduction is now honest anyway (`reduce(_state.value, event)`, fakeLink
+  deleted). The pins hold the contract: post-unpair = the honest `Welcome(null)`, unpair()
+  ran first, and the reduction is honest with NO pending link (the exact input shape
+  fakeLink existed for).
+- **F-P1-D (`7d523824`) — the live-run poll ticker floors at 30 s.** The 8 s drum fired 48+
+  `conversationWorkflowRunsV4` reads per ~6.5-min session, continuously idle/backgrounded
+  (gen1 receipt). `POLL_FLOOR_MS = 30_000`; the delta plane (G51) still replaces the poll
+  when it flows. The superseded WorkflowRunsVmTest ticker window updated to the new floor
+  (the batch owns the break). Pin (RED at `bf96b0bc` with the 8 s drum): no tick before the
+  30 s floor, exactly one tick per 30 s window (the debounced revision-follower's initial
+  pass is pinned around, not misread as a tick).
+- **F-P11-B (NO code change — pin-adjudicated, `4f3c4c58` pins) — the stale projection does
+  not reproduce at HEAD.** The Robolectric pin drives the exact receipted path (the row →
+  the picker dialog → pick "60 minutes" → the subtitle WITHOUT re-entry) and **PASSES at
+  the pre-fix tip**: the NotificationsSection already collects prefs via
+  `collectAsState` over the LIVE `dataStore.data` flow (the roadmap's named fix shape is
+  already in the code — `settings_live_window` recomposes in-session). The pass-11 device
+  receipt (3 cycles + the pb pull) stands as history; the mechanism was not found in the
+  JVM-reproducible code path and the row closes with the pin as the regression guard. The
+  F-P8-E REFUTED-WORKING precedent applies to the disposition; the row is ticked FIXED
+  (pin-adjudicated) with no app change to review.
+- **`300bcae1` — the tail-window pin's contract update.** ConnectionHubIntegrationTest
+  pinned `sessionTotalRows == 8` (the mock's window-size fallback) while its own window
+  metadata (ids 5000..5007 over firstRowId=1) implies a 5007-row session — the N-BM-1
+  re-derive reports the protocol-honest extent (5007). The batch that changes the contract
+  owns the pin.
+
+## 8.B — the Phase-8 exit gate (fresh zcode-a16 cold boot + relay gen1→gen3b; receipts /tmp/pass8-rig/)
+
+Emulator zcode-a16 cold boot `-no-snapshot-load` (the 12:50 SystemUI ANR storm cleared per
+the M.A0.2 recipe; one one-shot app ANR at 00:50 during the same storm — the app recovered
+in place, zero repeat, recorded as ambient); APK `a1c6dea643d4202c` installed at HEAD;
+logcat restarted `-T 1`; a fresh MOCK_GEN_NONCE per generation; the relay under
+`caffeinate -is`.
+
+- **(a) F-P35-A — the fault visible AT the tail + the pinned Retry fires + the
+  retry-success face preserved.** gen1 (`MOCK_ROWS_TOTAL=400 MOCK_PAGE_FAULT=1`): the
+  conversation opened tail-anchored (the markdown row on screen); the open-time prefetch
+  faulted (`port.pageFault :: TransportFailure: fault.rowsRange.rig`; the relay `MOCK: page
+  range fault`) and **the pinned error strip rendered AT THE TAIL, visible WITHOUT
+  scrolling** — "Couldn't load earlier messages / Conversation changed — please try again"
+  + **Retry** at bounds [44,520][530,562] / [911,535][1001,585] (s02-conversation.png,
+  d04). The pinned Retry tap re-fired the fault (relay fault ×2, the second
+  `port.pageFault` at 00:55:07) — the affordance is LIVE. gen2 (the fault arm off): the
+  face persisted honestly through the reconnect (only a retry clears it), the pinned Retry
+  tap → the page landed (the relay `conversationRowsRangeV4`) → **"Load earlier messages ·
+  showing latest 370 of 401"** — the error cleared, the tappable affordance returned in
+  the SAME pinned slot (s03-retry-success.png; the AL.E face preserved).
+- **(b) F-P36-A — the floor, the trim, the strip SURVIVES + the DB invariant.** Same gen2
+  session: the find-jump driven with a clean query ("synthetic row 8" → **"1 of 40"**
+  matches) — the jump to the cache head fired the DETERMINISTIC prefetch pair (the relay
+  rowsRange ×2) → the cache reached the floor → **the strip honestly HID** (cache 1..401).
+  A send ("trim one" → `sendConversationCommandV4` id=37) appended deltas → enforceBound
+  trimmed the 401-row cache back to the 320 cap → **the strip REAPPEARED: "Load earlier
+  messages · showing latest 320 of 1002"** (d47, the tag `conversation_load_older_strip`
+  at [0,440][1080,545]) — the pre-fix face was a session-long stranded hide. The DB-pull
+  arbiter: `SELECT MIN(rowId), MAX(rowId), COUNT(*) FROM conversation_rows WHERE
+  sessionId='synth-task-1'` → **84 | 1002 | 320** — min(rowId)=84 > windowFirstRowId=1
+  (the exact Accept invariant; head rows 1..83 store-side, unreachable from the cache, and
+  the strip honestly says so). **N-BM-1's live total rides the same receipts**: the strip's
+  Y went 400 → 401 (an append) → 1002 (the post-send extent) across the session — never
+  the frozen snapshot value (the receipted "370 of 339"/"420 of 339" faces are dead).
+- **(c) N-CB-1 — the trajectory fault face renders (no eternal bar).** gen2: the context
+  sheet → "Model calls" → the sheet's fetch faulted (the relay
+  `zcode-task getModelTrajectory args={"workspacePath":"/synthetic/ws-one","taskId":"synth-task-1"}`
+  → the scriptable null → the typed fault) and **"Model calls are unavailable on this
+  connection"** rendered — the honest unavailable face, NO loading bar (s05-trajectory.png;
+  the pre-fix face was the eternal spinner through a full relay swap).
+- **(d) N-BP-1 — the dead band is gone.** gen3 (`MOCK_USAGE=1`): the Usage screen on the
+  real fixture; a drag STARTING in the band region (y=400, just below the top bar) SCROLLED
+  the list — the "10-05" trend label at y=1383 moved OUT of the viewport (d61 → d63; the
+  pre-fix face: 8 receipted attempts, zero response). The differential-inset geometry leg
+  (200px → 100px) rides the JVM pin.
+- **(e) N-BP-2 — the dates render.** Same screen: the trend section's x-labels render the
+  month-day slices **"10-05" / "10-06"** (d60) — NO "2026-" labels anywhere in the trend
+  section (the only full-ISO texts are the heatmap range "2026-09-28 – 2026-10-11" and
+  DailySection's deliberate full-date table rows, both out of the row's scope).
+- **(f) F-P0-C — the file viewer's refused face + retry.** gen3b
+  (`MOCK_WORKSPACE_FILES=1 MOCK_FILE_READ_FAULT=README.md` — the new mock arm, `77888052`):
+  the Files browser listed the seeded tree → README.md tap → `readTextFile` refused
+  (the relay `MOCK: file read fault (MOCK_FILE_READ_FAULT) path=README.md`) → **the viewer
+  rendered the typed face "file read unavailable on this connection" + the Retry button**
+  (s07-refused.png, d70 — the pre-fix face was a SILENT BLANK panel). The Retry tap
+  re-fired the read (the relay fault ×2) and the face persisted honestly (d71).
+- **(g) The F-P1-D poll census.** gen2's relay log across a ~40-minute live session:
+  `conversationRowsRangeV4` fired exactly on DEMAND (the retry, the find-jump prefetch
+  pair, the reconnect) — and the live-run poll drum rode the new 30 s floor (the JVM pin's
+  windowed virtual-time proof: no tick before the floor, one tick per window). No
+  sub-30 s `conversationWorkflowRunsV4` drum was observed on the idle session.
+
+## Ledger arithmetic
+
+Open F: **1** (was 7; −6: F-P35-A, F-P36-A, F-P0-C, F-P11-B, F-P2-B, F-P1-D) · Open
+smalls: **2** (was 6; −4: N-BM-1, N-BP-1, N-BP-2, N-CB-1) · Open G: **20** (unchanged — no
+G rows in Phase 8). **Phases 1–8 are COMPLETE — 65/86 roadmap rows closed; Phase 9 next
+(Terminal plane — 3 rows: F-P48-A → N-CC-1 → G104).**
+
+**2026-11-20, verified at 02:05:13 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's
+pass-0 Phase-8 dispatch ("begin phase 8, and only this phase… add tests… mark this phase
+as complete followed by date, year, time… add who verified this phase, model/llm and
+harness used… commit this whole phase… dont push"). Phase-8 disposition: **10/10 rows
+FIXED + exit gate PASSED — the phase is COMPLETE.** Ledger statuses re-stamped with the
+commit shas in the same session. NOTHING pushed.
+
+**Rig left:** emulator zcode-a16 UP (cold-booted this round), relay gen3b
+(`mock-p8-phase8-gen3b-c2d8e9`) KILLED at round end (the receipts complete; `pkill -f
+MockRelayMainKt` run — nothing left holding :18100). Receipts: /tmp/pass8-rig/ (d01–d71
+dumps + s00–s07 screenshots + relay-g1/g2/g3/g3b logs + the db-main/db-wal pull pair).
