@@ -474,4 +474,6 @@
     <string name="viewer_detail_id">Model id</string>
     <string name="viewer_detail_badge">Badge</string>
     <string name="plugin_enable_switch_a11y">Enable %1$s</string>
+<!-- pass-0 Phase 10: G97 the companion-state mirror + the conflict-face remedy -->
+    <string name="conn_companion_mode">Remote control · mode %1$s (%2$s delivery)</string>
 </resources>

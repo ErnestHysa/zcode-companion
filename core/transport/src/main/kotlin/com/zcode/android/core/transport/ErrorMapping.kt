@@ -28,7 +28,10 @@ object ErrorMapping {
         )
         4009 -> AppError(
             category = ErrorCategory.SESSION,
-            userMessage = "Another ZCode Remote page took over this connection",
+            // G97 (pass-0 Phase 10): the same typed face as the relay KICKED path —
+            // names the takeover source and carries the single-page remedy.
+            userMessage = "Another ZCode Remote page took over this connection — " +
+                "close the other page (browser companion or another device), then reconnect",
             messageKey = UserMessageKey.SESSION_TAKEN_OVER,
             developerDiagnostic = "ws close 4009 SessionConflict (single-terminal rule, §15.3)",
             retryable = AppError.Retryable.USER,
@@ -182,7 +185,11 @@ object ErrorMapping {
         )
         "KICKED" -> AppError(
             category = ErrorCategory.SESSION,
-            userMessage = "Another ZCode Remote page took over this connection",
+            // G97 (pass-0 Phase 10): the face names the takeover source AND carries
+            // the remedy the desktop's own singlePageNote gives (a browser companion
+            // page or another remote page holds the pairing — close it, reconnect).
+            userMessage = "Another ZCode Remote page took over this connection — " +
+                "close the other page (browser companion or another device), then reconnect",
             messageKey = UserMessageKey.SESSION_TAKEN_OVER,
             developerDiagnostic = "relay KICKED (takeover, §15.3)",
             retryable = AppError.Retryable.USER,

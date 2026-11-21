@@ -152,6 +152,11 @@ data class CapabilitySnapshot(
     val host: com.zcode.android.core.protocol.v4.HostCapabilities,
     val desktopAppVersion: String?,
     val endpointKind: EndpointKind,
+    /** G97 (pass-0 Phase 10): the desktop's declared client posture for THIS
+     *  connection (the hello's clientMode/deliveryProfile — e.g.
+     *  "web-remote-replayable"/"replayable"); the companion-state mirror's data. */
+    val clientMode: String? = null,
+    val deliveryProfile: String? = null,
 )
 
 /** Ordered inbound frames (§11.2 receive). */

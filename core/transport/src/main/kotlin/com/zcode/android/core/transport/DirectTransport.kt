@@ -420,6 +420,8 @@ class DirectTransport(
             host = hello.capabilities,
             desktopAppVersion = info.version ?: endpoint.desktopAppVersion,
             endpointKind = EndpointKind.DIRECT_SERVER,
+            clientMode = hello.clientMode,
+            deliveryProfile = hello.deliveryProfile,
         )
         if (machine.state == ConnectionStateMachine.ConnectionState.AUTHENTICATING ||
             machine.state == ConnectionStateMachine.ConnectionState.CONNECTING ||

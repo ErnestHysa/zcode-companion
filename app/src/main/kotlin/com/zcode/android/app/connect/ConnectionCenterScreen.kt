@@ -50,6 +50,11 @@ fun ConnectionCenterScreen(
     phase: ConnectionPhase,
     endpointName: String?,
     desktopVersion: String?,
+    /** G97 (pass-0 Phase 10): the desktop's declared client posture (the hello's
+     *  clientMode/deliveryProfile) — the companion-state mirror's ONLY servable
+     *  surface; null keeps the line hidden (never an invented mode). */
+    clientMode: String? = null,
+    deliveryProfile: String? = null,
     lastError: com.zcode.android.core.common.error.AppError?,
     lastRefreshAtMs: Long?,
     onRetry: () -> Unit,
@@ -118,6 +123,22 @@ fun ConnectionCenterScreen(
                         text = it + (desktopVersion?.let { v -> stringResource(R.string.conn_desktop_version, v) } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // G97 (pass-0 Phase 10): the COMPANION-STATE mirror — the desktop's
+                // declared client posture for this connection. The desktop's richer
+                // companion plane (QR link, session faces, kicked/conflict taxonomy)
+                // stays desktop-served; this line is the honest phone-side minimum.
+                if (clientMode != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.conn_companion_mode,
+                            clientMode,
+                            deliveryProfile ?: "—",
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("connection_companion_mode"),
                     )
                 }
                 // Round-8 compat honesty: a desktop NEWER than the tested version may

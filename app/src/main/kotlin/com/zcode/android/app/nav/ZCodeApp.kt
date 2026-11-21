@@ -1401,10 +1401,17 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
     LaunchedEffect(endpoint?.desktopAppVersion) {
         container.appUpdate.checkForUpdate(endpoint?.desktopAppVersion)
     }
+    // G97 (pass-0 Phase 10): the companion-state mirror's data — the desktop's
+    // hello-declared posture for the CURRENT transport (null until CONNECTED).
+    val companionCaps = runCatching {
+        container.hub.activeTransport().capabilities.value
+    }.getOrNull()
     ConnectionCenterScreen(
         phase = phase,
         endpointName = endpoint?.displayName,
         desktopVersion = endpoint?.desktopAppVersion,
+        clientMode = companionCaps?.clientMode,
+        deliveryProfile = companionCaps?.deliveryProfile,
         lastError = lastError,
         lastRefreshAtMs = lastRefresh,
         onRetry = container.hub::retry,

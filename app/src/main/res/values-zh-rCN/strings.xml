@@ -363,4 +363,6 @@
     <string name="viewer_detail_id">模型 ID</string>
     <string name="viewer_detail_badge">徽标</string>
     <string name="plugin_enable_switch_a11y">启用 %1$s</string>
+<!-- pass-0 Phase 10: G97 伴随状态镜像与冲突面 -->
+    <string name="conn_companion_mode">远程控制 · 模式 %1$s（%2$s 投递）</string>
 </resources>

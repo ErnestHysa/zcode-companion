@@ -551,6 +551,8 @@ class RelayTransport(
                 host = hello.capabilities,
                 desktopAppVersion = endpoint.desktopAppVersion,
                 endpointKind = EndpointKind.RELAY_ZAI,
+                clientMode = hello.clientMode,
+                deliveryProfile = hello.deliveryProfile,
             )
             val skewMs = (hello.serverTime - clock()).toLong()
             bound().info("clock.skew", "serverAheadByMs=" + skewMs + " deviceNow=" + clock())
