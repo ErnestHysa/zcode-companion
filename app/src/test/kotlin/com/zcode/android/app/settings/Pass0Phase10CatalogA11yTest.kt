@@ -66,7 +66,7 @@ class Pass0Phase10CatalogA11yTest {
         rule.onNodeWithTag("plugins_list").assertExists()
         for (plugin in view.plugins) {
             val tag = "plugin_switch_${plugin.id}"
-            val node = rule.onAllNodesWithTag(tag).fetchSemanticsNode()
+            val node = rule.onNodeWithTag(tag).fetchSemanticsNode()
             val desc = runCatching { node.config[SemanticsProperties.ContentDescription] }.getOrNull()
             assertTrue(
                 "the enable switch $tag carries a content-desc naming the plugin (N-BN-1)",
