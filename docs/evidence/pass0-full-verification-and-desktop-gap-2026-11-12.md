@@ -2887,7 +2887,7 @@ will ladder per the healthy path or wedge per F-P9-A). Nothing pushed.
   the reads do (session-scoped), and render a typed refusal face when the target is
   null; pin: a Robolectric commit-sheet harness with a hub whose activeWorkspaceTarget
   is null asserting the face. This is the F-P5-A silent family's write-half twin.
-- [ ] **N-BN-1 (P4, a11y) — the Plugins screen's per-plugin enable switches are
+- [x] **N-BN-1 (P4, a11y) — the Plugins screen's per-plugin enable switches are
   UNLABELED**: `plugin_switch_plugin-prisma` and `plugin_switch_plugin-review`
   (checkable Views at the row trailing edge) carry no content-desc and no text children
   — TalkBack announces nothing for the ONLY interactive element of each plugin row.
@@ -11503,7 +11503,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ✓ DONE 2026-11-19 |
 | 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ✓ DONE 2026-11-20 |
 | 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ✓ DONE 2026-11-20 |
-| 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ☐ |
+| 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ✓ DONE 2026-11-21 |
 | | **Total** | **86** | **15** | **37** | **34** | | |
 
 Counts reconcile: 6+11+9+10+4+3+10+10+3+20 = **86 rows**; P2 4+7+1+2+1 = 15, P3
@@ -12173,26 +12173,26 @@ phase: **10A mirrors → 10B decisions → 10C heavy planes.**
 
 ### Sub-phase 10A — read-mirror minimums
 
-- [ ] **G83 (P4) — clientScenes: ONE verb (`getSnapshot`); the smallest consume on the board.**
+- [x] **G83 (P4) — clientScenes: ONE verb (`getSnapshot`); the smallest consume on the board.**
   **Fix:** a one-verb read mirror. **Accept:** the mirror renders against the real desktop, or
   a dated no-action note.
-- [ ] **G84 (P4) — outputStyle mirror: `listStyles` + `getActiveStyle` (of 7).** **Fix:** a
+- [x] **G84 (P4) — outputStyle mirror: `listStyles` + `getActiveStyle` (of 7).** **Fix:** a
   read-only mirror. **Accept:** the mirror renders, or a dated no-action note.
-- [ ] **G89 (P3) — the hook review-reason enum (11 typed reasons) undecoded — the phone card
+- [x] **G89 (P3) — the hook review-reason enum (11 typed reasons) undecoded — the phone card
   says only "N pending · M hooks"; saveHooks authoring is remote-servable.** **Fix:** decode
   half = the safe minimum (the reason enum + typed faces); saveHooks = a consume/no-action
   decision. **Accept:** the card/viewer renders typed reasons; the saveHooks decision dated.
-- [ ] **G90 (P4) — the coding-plan RESET trio (`requestCodingPlanResetOpportunity`,
+- [x] **G90 (P4) — the coding-plan RESET trio (`requestCodingPlanResetOpportunity`,
   `useCodingPlanReset`, `markCodingPlanResetHistoryRead`) — the phone renders quota reset
   read-only.** **Fix:** decode + typed faces. **Accept:** the reset flow renders typed states
   (the mock arms already serve the ladder).
-- [ ] **G101 (P4) — the CUA permission-status plane: `CuaPermissionService` getStatus (typed
+- [x] **G101 (P4) — the CUA permission-status plane: `CuaPermissionService` getStatus (typed
   status incl. grantOwner/accessibilityProbeOk/screenRecording/screenCaptureProbeOk/idle +
   typed reasons) + restartHelper (macOS-only) — the phone decodes PUSHED observations only.**
   **Fix:** a read-only status mirror minimum (one card fed by getStatus); restartHelper = a
   consume/no-action decision. **Accept:** the card renders the desktop's CUA health; the
   restartHelper decision dated.
-- [ ] **G98 (P3) — the desktop's SOURCE-SERVER/compute planes** (SSH host/port/auth
+- [x] **G98 (P3) — the desktop's SOURCE-SERVER/compute planes** (SSH host/port/auth
   password·privateKey/asset-install-mode, WSL, Docker, sourceServer as workspace hosts) — the
   phone's "remote" is only the desktop's relay; zero counterpart, not even read-only. **Fix:**
   a read-only mirror of source servers (the phone already decodes sourceServerId in task
@@ -12201,60 +12201,60 @@ phase: **10A mirrors → 10B decisions → 10C heavy planes.**
 
 ### Sub-phase 10B — consume decisions & inventory rows
 
-- [ ] **G85 (P3) — broadcastService vocabulary complete but consume/no-action UNDECIDED**
+- [x] **G85 (P3) — broadcastService vocabulary complete but consume/no-action UNDECIDED**
   (`mobile-push:run/event` = the V2 realtime arm; `state:*` sync family; the task-groups claim
   protocol). **Fix:** a DATED decision row; `mobile-push:*` feeds G93's architecture.
   **Accept:** the decision recorded in the ledger with its rationale.
-- [ ] **G95 (P4) — the feedback/support-intake plane (Feedback, 15 methods incl.
+- [x] **G95 (P4) — the feedback/support-intake plane (Feedback, 15 methods incl.
   device-snapshot + log-archive attach) — the phone's diagnostics export could feed
   `attachLogsFromExport`.** **Fix:** inventory row → a consume decision. **Accept:** the
   decision dated.
-- [ ] **G96 (P4) — the conversation selection-comment/annotate plane (批注) — desktop-gated on
+- [x] **G96 (P4) — the conversation selection-comment/annotate plane (批注) — desktop-gated on
   the conversationQuoteComment capability; the phone has no annotation entry.** **Fix:** an
   inventory row (renderer feature, self-hiding). **Accept:** the decision dated (likely
   no-action).
-- [ ] **G86 (P4) — the share-code IMPORT plane (`importShare` + progress phases) —
+- [x] **G86 (P4) — the share-code IMPORT plane (`importShare` + progress phases) —
   desktop-only.** **Fix:** inventory first. **Accept:** the decision dated.
-- [ ] **G87 (P4) — the real-time voice-input ASR plane (ticketed sessions, chunk upload) — the
+- [x] **G87 (P4) — the real-time voice-input ASR plane (ticketed sessions, chunk upload) — the
   phone relies on OS IME dictation (dead on API 36).** **Fix:** an inventory row (build
   unlikely). **Accept:** the decision dated.
-- [ ] **G88 (P4) — 22 desktop themes vs the phone's 5 (the shipped zai pair = true parity).**
+- [x] **G88 (P4) — 22 desktop themes vs the phone's 5 (the shipped zai pair = true parity).**
   **Fix:** cosmetic; inventory only. **Accept:** the decision dated.
-- [ ] **G92 (P4) — `configOptions` decode-only (select/boolean + current values).** **Fix:**
+- [x] **G92 (P4) — `configOptions` decode-only (select/boolean + current values).** **Fix:**
   one adapter from a phone render + render. **Accept:** one adapter demonstrated, or a dated
   no-action note.
-- [ ] **G99 (P4) — the desktop's WHITEBOARD plane (65 keys) vs the phone's send-only Sketch
+- [x] **G99 (P4) — the desktop's WHITEBOARD plane (65 keys) vs the phone's send-only Sketch
   canvas.** **Fix:** an inventory row; consume minimum = an honest "open on desktop" face for
   whiteboard artifacts if they surface in conversations. **Accept:** the decision dated + the
   minimum face if consumed.
 
 ### Sub-phase 10C — heavy planes & catalog polish
 
-- [ ] **G103 (P4) — the read-only catalog planes have NO DETAIL/DEPTH consume:** all six
+- [x] **G103 (P4) — the read-only catalog planes have NO DETAIL/DEPTH consume:** all six
   settings tool screens (Skills / MCP / Subagents / Providers / Bots / Commands) render lists
   with rows NON-CLICKABLE BY CONSTRUCTION (pass-49 census re-confirmed — Providers zero
   clickable). **Fix:** the G91/G82 viewer-family shape — a detail bottom-sheet per plane
   (tap row → the item's fields read-only); minimum = Skills detail (the highest-value
   catalog). **Accept:** a compose test asserting a skill row opens a detail sheet with the
   body text.
-- [ ] **G81 (P3) — the gen-ui consume plane: the desktop renders generated interactive UI
+- [x] **G81 (P3) — the gen-ui consume plane: the desktop renders generated interactive UI
   (HTML in plugin-sandbox); the phone accepts zero files.** **Fix:** the 4-part spec (declare
   `genUiContext:true`; answer `runtimeCapabilities`; accept/forward the genUiContext array
   [max 100 × {path,state}] on send; render components incl. the `genUi.desktopOnly` face) —
   minimum = the honest "open on your desktop" face. **Accept:** the minimum face live, or the
   full consume per the F.B1 spec.
-- [ ] **G94 (P3) — the worktree creation/fork plane (ManagedWorktree, 14 methods) —
+- [x] **G94 (P3) — the worktree creation/fork plane (ManagedWorktree, 14 methods) —
   start-a-task-in-a-worktree has no phone counterpart; the plane is additionally AGENT-gated
   (localhost only).** **Fix:** a minimum face — `listCreations` +
   `onDidChangeCreations`/`onDidSettleCreation`. **Accept:** the read-only creation list
   renders where the capability is served, or a dated no-action note.
-- [ ] **G93 (P3) — the V2 mobile-push plane has NO phone receiver** (device registration
+- [x] **G93 (P3) — the V2 mobile-push plane has NO phone receiver** (device registration
   `{device_mid}→{device_sid}`, Bearer JWT event POST, typed skip reasons) — when the relay
   socket is down the desktop cannot reach the phone AT ALL. ARCHITECTURAL: needs a
   cloud-transport decision FIRST (the enum residual is CLOSED). **Fix:** the decision, then
   the push receiver + registration face per it. **Accept:** the DATED architecture decision
   recorded before any build.
-- [ ] **G97 (P3) — the desktop's web-remote-control companion plane (90 i18n keys) — the phone
+- [x] **G97 (P3) — the desktop's web-remote-control companion plane (90 i18n keys) — the phone
   is BLIND to it:** no face for a browser session controlling its workspace, no
   kicked/conflict notice, bot-channel access undocumented phone-side (the client mode is
   restricted to a 49-channel allowedChannels Set). **Fix:** honest surfaces minimum (a
@@ -12265,7 +12265,7 @@ phase: **10A mirrors → 10B decisions → 10C heavy planes.**
   TalkBack silence on the row's only interactive element). **Fix:** content-desc on the
   switches (rides G103's catalog-plane work). **Accept:** an a11y pin — each switch labeled.
 
-**Phase 10 exit gate: ☐** per-row Accept: every decision row carries a DATED decision in the
+**Phase 10 exit gate: ☑ DONE 2026-11-21 10:27:06 UTC** per-row Accept: every decision row carries a DATED decision in the
 ledger; every mirror row renders against the real desktop (or carries its dated no-action
 note); the catalog detail-sheet pin green; the a11y pin green.
 
@@ -12273,10 +12273,10 @@ note); the catalog detail-sheet pin green; the a11y pin green.
 
 ## Definition of done (pass-0 remediation)
 
-- [ ] Every phase exit gate checked in order (1 → 2 → … → 10), each on a fresh emulator+relay
+- [x] Every phase exit gate checked in order (1 → 2 → … → 10), each on a fresh emulator+relay
       leg with receipts appended to this report
-- [ ] All 86 roadmap rows ticked — or explicitly waived with a dated one-line reason here
-- [ ] Full module suite (`testDebugUnitTest` for the Android modules + `test` for the six
+- [x] All 86 roadmap rows ticked — or explicitly waived with a dated one-line reason here
+- [x] Full module suite (`testDebugUnitTest` for the Android modules + `test` for the six
       pure-JVM modules) green at the final HEAD with the zero-new-names gate against the
       recorded per-phase baselines, and every module emitted test XML (no test-compile blind
       spot)
@@ -13725,3 +13725,212 @@ stored MockBook endpoint, DISCONNECTED). Receipts: /tmp/pass0-p9/ (baseline + ga
 15 screenshots incl. fp48a-honest-face / fp48a-clean-recovery / g104-armed /
 g104-roundtrip / g104-granted / g3-capoff-face, relay-g1/g2/g2b/g3 logs, ui dumps
 ui.xml–ui65.xml, logcat.log).
+
+---
+
+# pass-0 Remediation — Phase 10 fix-round record (APPENDED 2026-11-21)
+
+> **Phase 10 — Desktop parity planes: 20/20 rows CLOSED, exit gate PASSED.** Branch
+> `fix/pass0` (the phase ran on top of the Phases 1–9 commits, the pre-phase tree =
+> `f1ebf30b`). Two pins commits (RED-demonstrated) + eight fix/mock commits + this docs
+> commit; every pin written TEST-FIRST; the full-suite zero-new-names gate passed
+> (Android `testDebugUnitTest` + the pure-JVM `test` modules — the six-viewer merge
+> regressions the gate caught were FIXED by the batch that broke them, rule 7); the APK
+> rebuilt at the phase head; the exit-gate legs receipted live on a fresh zcode-a16
+> cold boot `-no-snapshot-load` with relay gen1/gen2. Executed by GLM-5.3-Flash in
+> ZCode (Ernest's "begin phase 10, and only this phase" dispatch). NOTHING pushed —
+> local commits only.
+
+## 10.1 — commits (one mechanism ≥ one commit)
+
+| Commit | Row(s) | Mechanism (one line) |
+| --- | --- | --- |
+| `b75eb455` | pins 1/2 | the compile-clean runtime-RED set (INV-9 mirror surface, G97 face, N-BN-1 a11y, G103 detail) |
+| `079ae4bd` | pins 2/2 | the new-API RED class (G83/G84/G101/G98 decoder pins, G89/G81 faces, G92 sheet — compile-RED) |
+| `97cd3b71` | **G89** + the mirror plumbing | HookReviewReasons (the 12-value vocabulary, EN copies from the asar i18n; the wire carries NO reason field — the phone derives the two OBSERVABLE states: stale_digest → bundle_changed copy, expired+pending → interaction_timeout; silence elsewhere) + the card faces; the five V4Plane service-channel reads + the four domain mirror models + the ViewerTools reads (INV-9) |
+| `6a9f6f37` | **G83+G84+G101+G98** | the four read-mirror screens ship (one shared mechanism): ports, screens, Settings rows, routes, strings en+zh; ZERO write affordances |
+| `0887c122` | mirrors wiring | the SettingsRoute param threading + the AppContainer imports + the per-face error pins split |
+| `41666d28` | **G103** + **N-BN-1** | ViewerDetailSheet (the shared read-only detail tier — a tap opens the item's fields on ALL SIX catalog planes; Skills pinned with the BODY TEXT) + the plugin switches' contentDescription "Enable <name>" |
+| `040ca760` | pin follow-up | the G103 pin finders go unmerged-safe (the clickable wrapper merges) |
+| `0cd78fa4` | **G97** | the companion-state mirror (CapabilitySnapshot clientMode/deliveryProfile from the hello + the Connection-center line) + the KICKED/4009 faces name the companion AND carry the singlePageNote remedy |
+| `1624429e` | **G81** | the HTML artifact card's honest "Generated UI — open on your desktop" face (the 4-part consume = the dated no-action decision) |
+| `0208f51a` | **G92** | the configOptions adapter ships — ConversationPort.ConfigOptionView + observeConfigOptions + the session-context sheet section (empty renders NOTHING) |
+| `6e22304b` | fix(mock) | the four parity-mirror channels served with asar-faithful seeds (`:tools:mockzcode:jar` + `:tools:mockzcode:test` green) |
+| `8d6d52d9` | fix(mock) | the MOCK_HOOKS_STALE arm (G89's typed stale face live) + the MOCK_CONFIG_OPTIONS seed (G92 live) |
+| `160e4e8a` | regression batch | rule 7's gate caught 9 new names — clickable moved ONTO the row nodes, the viewers' child-tag finders went unmerged-safe, the hook flow-reason rode the counts row (D4's pinned-budget contract holds); F-P8-B exonerated (pool flake) |
+| `b4589e87` + 2 harness commits | pin follow-ups | the wall-clock base (a fixed past base read as expired), the semantics-fetch API, the error-package imports, the data-pin name/KDoc fixes |
+
+## 10.2 — the asar ground truth (the desktop of record, `ec475e6e…`, unchanged)
+
+The channel registry (ChannelNames): **ClientScenes="client-scenes"** (serving
+`createClientScenesService` = ONE verb `list` over GET /api/v1/client/scenes — the
+roadmap's "getSnapshot" attribution was WRONG, corrected), **OutputStyle="output-style"**
+(`createOutputStyleService`: listStyles/getActiveStyle/… — the read half), **CuaPermission
+="cua-permission"** (getStatus: the 9 typed fields; restartHelper), **SourceServerManagement
+="source-server-management"** (getSnapshot: the Dh/J0 directory snapshot — servers[]
+{sourceServerId,displayName,osUser,hostname,lastSeenVersion,installState,declaredWorkspaces},
+states[] with the 10-value raw state vocabulary), **ManagedWorktree = NOT IN THE REGISTRY**
+(window-internal + `listCreations` is `isLocalHost ? s() : []` — G94's no-action facts).
+The review-reason enum: the wire carries NO reason field (the workspaceHookReview schema
+has none) — the 12 labels are the desktop's COMPUTED display vocabulary.
+
+## 10.3 — pins (TEST-FIRST; shape fidelity)
+
+| Pin | RED | GREEN |
+| --- | --- | --- |
+| `V4PlaneParityMirrorSurfaceTest` (transport, 2): the phase-10 surface is EXACTLY the five read methods, no write verbs | 3 RUNTIME-RED at `b75eb455` (missing methods + the old copy) | GREEN at `0cd78fa4` |
+| the four decoder pins (`Pass0Phase10{ClientScenes,OutputStyle,CuaStatus,SourceServers}DecodeTest`, data, 10): asar-faithful shapes, tolerant decode, raw vocab | COMPILE-RED at `079ae4bd` | GREEN at `97cd3b71` |
+| `Pass0Phase10MirrorFacesTest` (conversation, 5): the stale item's typed copy, the expired flow's "Review timed out", silence elsewhere; the HTML card's desktopOnly face | COMPILE-RED (`079ae4bd`) → runtime-RED pre-fix | GREEN at `1624429e` |
+| `Pass0Phase10ConfigOptionsSheetTest` (conversation, 3): select+boolean rows with current values; empty renders nothing | COMPILE-RED at `079ae4bd` | GREEN at `0208f51a` |
+| `Pass0Phase10CatalogA11yTest` (app, 3): every plugin switch carries a content-desc naming the plugin; a skill row opens the detail sheet WITH THE BODY TEXT; no invented enable affordance | 3 RUNTIME-RED at `b75eb455` | GREEN at `41666d28` |
+| `Pass0Phase10MirrorsUiTest` (app, 11): each mirror renders its decoded list with the ACTIVE badge / state chips / typed CUA reason / workspace counts; the port-error faces; ZERO write affordances | shipped with `6a9f6f37` | GREEN |
+
+## 10.4 — suite + gate
+
+- **Pre-phase baseline** (clean tree `f1ebf30b`): 4 failing names — `:app`
+  ConnectionHubWritePathTest ×2, `:features:conversation` RowActionsRoutingTest +
+  TimelineCallbackWiringTest (the Phase-9-recorded drift cluster, one smaller this run).
+- **Post-phase gate**: the first full run caught **9 NEW names** (the six catalog
+  viewers + PinnedCardSubmitPinTest.D4 + ConnectionHubEndpointPersistenceTest + the
+  baseline cluster) — ALL FIXED by the regression batch `160e4e8a` (the clickable
+  wrappers merged the rows' descendants: clickable moved onto the row nodes, the
+  child-tag finders went unmerged-safe, the hook flow-reason line rode the counts row
+  so D4's pinned-budget contract holds; F-P8-B + ConnectionHubIntegrationTest ×2
+  pass in ISOLATION at both the phase head and the pre-phase commit — the established
+  pool-load flake class, exonerated ×3). **Zero new failing names at the final HEAD.**
+  Task-failure list: test-failure tasks only; the six-JVM-module pass green (transport
+  136 / mockzcode 300 / domain / data / spike / …), every Android module emitted test XML.
+- **APK rebuilt** at the phase head: `app/build/outputs/apk/debug/app-debug.apk` —
+  sha256 `000ecfb9e69149c9…` (32,060,835 bytes), versionCode 53 / 1.3.2. Mock jar
+  rebuilt with the four parity-mirror channels + the two new arms.
+
+## 10.5 — the exit gate (live receipts; fresh zcode-a16 cold boot `-no-snapshot-load`)
+
+Relay generations (the mock's deterministic sid — the stored MockBook endpoint
+reconnected to BOTH without re-pairing; `pkill -f MockRelayMainKt` between gens;
+receipts /tmp/pass10/rig/ — 20 screenshots + relay logs + logcat):
+
+- **gen1 `mock-p10-gen1-7c41aa`** (MOCK_HOOKS + MOCK_HOOKS_STALE + MOCK_CONFIG_OPTIONS
+  + MOCK_ROW_KINDS + MOCK_USAGE + the always-on mirror seeds):
+  - **(a) The four Settings rows render** (g-settings-new-rows.png / g-settings-rows2.png):
+    Client scenes · Output style · Computer Use status · Source servers.
+  - **(b) G83 — PASSED**: the Client-scenes screen renders the seeded draft-suggestion
+    prompt "Review the latest rig commits" (the en|cn option-group resolution; the
+    missing-reference prompt SKIPPED); wire: `MOCK: client-scenes list`
+    (g83-scenes-prompt.png).
+  - **(c) G84 — PASSED**: the style catalog renders Default (built-in) + Explain
+    (custom) with the **Active** badge on the getActiveStyle id; wire:
+    `MOCK: output-style getActiveStyle` + `listStyles` (g84-style-active.png).
+  - **(d) G101 — PASSED**: the CUA status card renders Available · Grant owner Ernest ·
+    Accessibility ✓ · Screen recording "granted (probe failed)" (the mixed face from
+    the seeded capture-probe failure); wire: `MOCK: cua-permission getStatus`
+    (g101-cua-status.png).
+  - **(e) G98 — PASSED**: the source-server directory renders gpu-box (**online** chip ·
+    gpu-box.local · ernie · 1 declared workspace(s)) + nas (**failed** chip · "SSH
+    refused" error face); wire: `MOCK: source-server-management getSnapshot`
+    (g98-source-servers.png).
+  - **(f) G103 — PASSED**: the Skills viewer renders the catalog (release/sql-migrate/
+    commit with source badges); a ROW TAP opens the detail bottom-sheet with the BODY
+    TEXT ("Cut a release: bump version, changelog, tag, build…"), Scope workspace, Path
+    …/release/SKILL.md; NO enable affordance; wire: `MOCK: skills getSkillReferenceCatalog`
+    (g103-skill-detail-sheet.png).
+  - **(g) N-BN-1 — PASSED**: the Plugins screen's switches carry content-descs —
+    "Enable prisma-toolkit" / "Enable code-review" — visible in the a11y dump
+    (nbn1-plugin-switches.png).
+  - **(h) G89 — PASSED (the typed faces)**: the hook review card renders the counts line
+    WITH the typed **"Review timed out"** inline (the flow-level interaction_timeout
+    face — ZERO vertical growth, the D4 contract held); after the hooks viewer's
+    Refresh (wire: `MOCK: command type=requestWorkspaceHookReview`) the viewer renders
+    h3 "Watcher" with the fresh **"stale — re-review"** badge (g89-hook-card-timeout.png /
+    g89-hooks-viewer-stale.png). The item-level typed reason copy is compose-pinned GREEN;
+    its card-plane live leg is gated by the F-P3-A retained-interaction rule (documented,
+    not a defect).
+  - **(i) G92 — PASSED**: the session-context sheet renders the **"Workspace config
+    options"** section — Commit style · select · current: conventional — Auto-fix lint ·
+    boolean · current: false (g92-config-options.png).
+  - **(j) G81 — PASSED**: the HTML artifact card (rig-p33-missing.html) renders
+    **"Generated UI — open on your desktop"** (g81-genui-face.png).
+  - **(k) G97 — PASSED (the mirror)**: the Connection center renders **"Remote control ·
+    mode web-remote-replayable (replayable delivery)"** fed by the hello
+    (g97-companion-mode.png). The kicked/conflict FACE is unit-pinned (the takeover
+    requires a second live client — undrivable on the rig; the ErrorMapping copy carries
+    the typed naming + remedy).
+- **gen2 `mock-p10-gen2-b19e33`** (MOCK_USAGE + MOCK_FIXTURES_DIR + MOCK_RESET_QUEUE_PRE
+  + MOCK_RESET_SUCCESS):
+  - **(l) G90 — PASSED (the full typed ladder, live)**: the Usage screen renders the
+    fixture meters (Usage remaining · 64% · Quota reset 05:20; Weekly 49% + Reset chip);
+    the weekly Reset chip → the TYPED-CONFIRM dialog ("Reset Weekly quota?" · "Resets
+    available: 1" · "Type RESET to confirm" — the gate disabled until typed); RESET
+    typed → confirm → the relay receipts THE WHOLE LADDER: `MOCK: reset ladder armed
+    (one pre-consume status queued at use)` → `MOCK: reset status served from QUEUE`
+    → `MOCK: reset history read (hasUnreadHistory cleared)` → `MOCK: entitlement meters
+    mutated (WEEK/unit-6 after use…)`; the meters MUTATED live (Weekly 49% → **59%**,
+    the chip now "Reset (2)") (g90-quota-before / g90-confirm-typed / g90-confirm-reset /
+    g90-after-ladder.png).
+- **Robustness**: one `input text` interleave ate the confirm field's last char (the
+  standing gotcha; cleared by the MOVE_END+DEL+retype recipe); one back-navigation
+  "Leave this conversation?" dialog (expected); zero FATAL exceptions in the pulled
+  logcat across all legs.
+
+## 10.6 — the 10B decision rows (all DATED 2026-11-21 in the ledger)
+
+- **G85**: NO-ACTION consume (the phone's own realtime pushes ride the zcode-agent plane;
+  `state:*`/claims are desktop-renderer muxing; `mobile-push:*` feeds G93's decision).
+- **G95**: inventory recorded, consume NO-ACTION (the desktop-authored support plane; the
+  phone's diagnostics export already covers intake; attachLogsFromExport needs a desktop
+  session to attach INTO).
+- **G96**: NO-ACTION (renderer-gated on conversationQuoteComment; the phone never declares
+  the bit; the desktop entry self-hides).
+- **G86**: DEFERRED, inventory first (importShare is wire-servable; a phone-side import
+  needs target-workspace UX + a share-code acquisition path; the composer "paste share
+  code" action is the named future surface).
+- **G87**: NO-ACTION (build unlikely; the ticketed ASR plane is desktop-internal; OS IME
+  dictation remains the phone posture).
+- **G88**: NO-ACTION (cosmetic; the shipped zai pair IS the true parity).
+- **G99**: NO-ACTION for the canvas (boards reach conversations as image exports the phone
+  already renders); the "open on desktop" minimum face is COVERED by G81's face.
+- **G94**: NO-ACTION with the two asar facts (ManagedWorktree is NOT channel-exposed —
+  not in the ChannelNames registry; `listCreations` is localhost-gated `isLocalHost ? s()
+  : []`) — the minimum face is IMPOSSIBLE without a channel; the G53 repo-info twin
+  covers worktree awareness.
+- **G93**: **THE ARCHITECTURE DECISION, recorded BEFORE any build (as the Accept named):
+  the V2 HTTP push receiver is DEFERRED** — no cloud push transport exists for this
+  sideloaded OSS app (no FCM/Play-Services guarantee); the relay-socket realtime arm
+  covers open-app delivery (receipted live across passes); the closed-app gap (the desktop
+  cannot reach the phone when the socket is down) is ACCEPTED and documented. Revisit only
+  if Ernest wants a persistent transport (FCM vs self-hosted poll vs UnifiedPush). No
+  receiver built.
+
+## 10.7 — what was NOT driven (honesty)
+
+- The kicked/conflict FACE live (requires a second live client taking the sid — the mock
+  has no kick arm; the face is unit-pinned with the typed copy + remedy; the companion
+  MIRROR line IS live-receipted).
+- The item-level typed reason on the CARD plane live (gated by the F-P3-A
+  retained-interaction rule — the compose pins hold it; the viewer's stale badge and the
+  card's flow-level timeout face ARE live).
+- G103's detail tier on Providers rows renders the model fields live only via the compose
+  pins (the live walk covered Skills' sheet; the other five planes share the same sheet
+  host and are pinned; their live taps are a receipt debt for a future pass).
+- The zh-rCN render of the new strings (shipped + census-pinned for BOTH locales; the
+  on-device walk stayed en).
+
+## 10.8 — verification stamp
+
+**2026-11-21, verified at 10:27:06 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's
+pass-0 Phase-10 dispatch ("begin phase 10, and only this phase… verify this phase is 100%
+fullfilled… add tests… mark this phase as complete followed by date, year, time… add who
+verified this phase, model/llm and harness used… commit this whole phase… only local
+commits"). Phase-10 disposition: **20/20 rows CLOSED (4 FIXED mirrors + G89 decode +
+G90 re-receipted + G92/G103/G81/G97/N-BN-1 FIXED + 9 DATED decisions) + exit gate
+PASSED — the phase is COMPLETE.** Ledger statuses re-stamped with the commit shas in the
+same session; the roadmap checkboxes ticked; the overview row marked. NOTHING pushed.
+
+**Rig left:** emulator zcode-a16 UP (the cold-boot leg), ALL relays KILLED at round end
+(`pkill -f MockRelayMainKt` — nothing holds :18100; the app idles on the Tasks home with
+the stored MockBook endpoint). Receipts: /tmp/pass10/rig/ (20 screenshots incl. the four
+mirror screens, the skill detail sheet, the plugin switch a11y dump, the hook typed faces,
+the config options section, the gen-ui face, the companion line, the reset ladder
+before/after; relay-gen1/gen2 logs; logcat.log).
