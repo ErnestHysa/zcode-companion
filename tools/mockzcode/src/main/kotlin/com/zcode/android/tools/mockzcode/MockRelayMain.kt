@@ -639,6 +639,21 @@ fun main() {
             )),
         ))
     }
+    // pass-0 Phase 10 (G89): MOCK_HOOKS_STALE=1 flips the FIRST review's h3 to
+    // stale_digest (pendingCount 2→3 — stale is actionable) so the card's TYPED
+    // reason face (the desktop's bundle_changed copy under the bare chip) is
+    // drivable live on the rig.
+    if (System.getenv("MOCK_HOOKS_STALE") == "1") {
+        val base = mock.script.hookReview
+        if (base != null) {
+            val items = base["items"]!!.jsonArray.map { it.jsonObject }.toMutableList()
+            items[2] = JsonObject(items[2].toMap() + mapOf("trustState" to JsonPrimitive("stale_digest")))
+            val summary = base["summary"]!!.jsonObject.toMap() +
+                mapOf("pendingCount" to JsonPrimitive(3))
+            mock.script.hookReview = JsonObject(base.toMap() +
+                mapOf("items" to JsonArray(items), "summary" to JsonObject(summary)))
+        }
+    }
     // Pass-45 (p45 hooks-second): MOCK_HOOKS_SECOND=1 seeds a SECOND task's review
     // (synth-task-2, distinct flow/interaction ids + h4/h5 items) — the hooks viewer's
     // per-task group separation (hooks_group_<taskId>) needs two ledger entries;
@@ -1282,6 +1297,41 @@ fun main() {
     mock.script.outputStyleActive = JsonObject(mapOf("styleId" to JsonPrimitive("custom-explain")))
     mock.script.cuaPermissionStatus = cuaStatusSeed()
     mock.script.sourceServerSnapshot = sourceServersSeed()
+    // pass-0 Phase 10 (G92): MOCK_CONFIG_OPTIONS=1 seeds the workspace-config
+    // topic's state (configOptions select/boolean + current values) so the
+    // session-context sheet's config-options section renders live.
+    if (System.getenv("MOCK_CONFIG_OPTIONS") == "1") {
+        mock.script.workspaceConfigState = JsonObject(mapOf(
+            "configOptions" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "id" to JsonPrimitive("commitStyle"),
+                    "name" to JsonPrimitive("Commit style"),
+                    "description" to JsonPrimitive("How commit messages are drafted"),
+                    "category" to JsonPrimitive("git"),
+                    "type" to JsonPrimitive("select"),
+                    "currentValue" to JsonPrimitive("conventional"),
+                    "options" to JsonArray(listOf(
+                        JsonObject(mapOf(
+                            "value" to JsonPrimitive("conventional"),
+                            "name" to JsonPrimitive("Conventional"),
+                        )),
+                        JsonObject(mapOf(
+                            "value" to JsonPrimitive("plain"),
+                            "name" to JsonPrimitive("Plain"),
+                        )),
+                    )),
+                )),
+                JsonObject(mapOf(
+                    "id" to JsonPrimitive("autofix"),
+                    "name" to JsonPrimitive("Auto-fix lint"),
+                    "type" to JsonPrimitive("boolean"),
+                    "currentValue" to JsonPrimitive("false"),
+                    "options" to JsonArray(emptyList()),
+                )),
+            )),
+            "slashCommands" to JsonArray(emptyList()),
+        ))
+    }
     // p48 rig leg (MOCK_CATALOG_EMPTY=1): serve EMPTY catalogs so the three viewer
     // screens' EMPTY faces are drivable (the pass-40 census receipted only the
     // seeded-list renders; the empty faces were never live-driven).
