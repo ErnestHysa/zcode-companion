@@ -101,27 +101,31 @@ fun HookTrustReviewCard(
             )
             hook.summary.let { s ->
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.hook_review_counts, s.pendingCount, s.hookCount),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
-                )
-            }
-            // G89 (pass-0 Phase 10): the typed review-reason face — the flow-level
-            // reason the phone can OBSERVE (the expired deadline = the desktop's
-            // interaction_timeout copy); every unobservable state stays silent
-            // (never an invented reason — HookReviewReasons).
-            val flowReason = androidx.compose.runtime.remember(hook) {
-                com.zcode.android.domain.model.HookReviewReasons.flowReason(hook, System.currentTimeMillis())
-            }
-            flowReason?.let {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.testTag("hook_review_flow_reason"),
-                )
+                // G89 (pass-0 Phase 10): the typed review-reason face rides the SAME
+                // row as the counts line (ZERO vertical growth — the pinned-budget
+                // contract, D4: Trust stays reachable without a swipe). The flow-level
+                // reason is the one state the phone can OBSERVE (expired deadline =
+                // the desktop's interaction_timeout copy); every unobservable state
+                // stays silent (never an invented reason — HookReviewReasons).
+                val flowReason = androidx.compose.runtime.remember(hook) {
+                    com.zcode.android.domain.model.HookReviewReasons.flowReason(hook, System.currentTimeMillis())
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.hook_review_counts, s.pendingCount, s.hookCount),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                    )
+                    flowReason?.let {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("hook_review_flow_reason"),
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(8.dp))
             // N-BG-1/D4 (vc52 Phase 9): the item list scrolls in ITS OWN viewport (the

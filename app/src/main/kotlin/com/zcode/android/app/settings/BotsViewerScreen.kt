@@ -128,13 +128,7 @@ fun BotsViewerScreen(
                                 .testTag("bots_list"),
                         ) {
                             items(bots, key = { it.botId }) { bot ->
-                                Column(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable { detailBot = bot },
-                                ) {
-                                    BotLine(bot)
-                                }
+                                BotLine(bot) { detailBot = bot }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             }
                             item { Spacer(Modifier.height(24.dp)) }
@@ -147,10 +141,11 @@ fun BotsViewerScreen(
 }
 
 @Composable
-private fun BotLine(bot: com.zcode.android.domain.model.SlashCatalogExtras.BotEntry) {
+private fun BotLine(bot: com.zcode.android.domain.model.SlashCatalogExtras.BotEntry, onClick: () -> Unit = {}) {
     Row(
         Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 8.dp)
             .testTag("bot_row_${bot.botId}"),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,

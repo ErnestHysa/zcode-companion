@@ -44,8 +44,8 @@ class BotsViewerUiTest {
         rule.onNodeWithTag("bots_list").assertIsDisplayed()
         rule.onNodeWithTag("bot_row_bot-telegram-1").assertIsDisplayed()
         rule.onNodeWithTag("bot_row_bot-discord-1").assertIsDisplayed()
-        rule.onNodeWithTag("bot_provider_badge_bot-telegram-1").assertExists()
-        rule.onNodeWithTag("bot_state_badge_bot-discord-1").assertExists()
+        rule.onNodeWithTag("bot_provider_badge_bot-telegram-1", useUnmergedTree = true).assertExists() // G103: the row is clickable — child tags merge away
+        rule.onNodeWithTag("bot_state_badge_bot-discord-1", useUnmergedTree = true).assertExists() // G103 merge
     }
 
     @Test

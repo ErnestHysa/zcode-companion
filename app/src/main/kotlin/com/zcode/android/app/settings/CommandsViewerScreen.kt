@@ -110,13 +110,7 @@ fun CommandsViewerScreen(
                     }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("commands_list")) {
                         items(commands, key = { it.source + "/" + it.name }) { cmd ->
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { detailCmd = cmd },
-                            ) {
-                                CommandLine(cmd)
-                            }
+                            CommandLine(cmd) { detailCmd = cmd }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         item {
@@ -135,10 +129,11 @@ fun CommandsViewerScreen(
 }
 
 @Composable
-private fun CommandLine(cmd: SlashCatalogExtras.CommandEntry) {
+private fun CommandLine(cmd: SlashCatalogExtras.CommandEntry, onClick: () -> Unit = {}) {
     Row(
         Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 8.dp)
             .testTag("command_row_${cmd.source}_${cmd.name}"),
         verticalAlignment = Alignment.CenterVertically,

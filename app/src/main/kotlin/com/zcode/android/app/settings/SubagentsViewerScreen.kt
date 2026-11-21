@@ -125,13 +125,7 @@ fun SubagentsViewerScreen(
                                 .testTag("subagents_list"),
                         ) {
                             items(agents, key = { it.name }) { agent ->
-                                Column(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable { detailAgent = agent },
-                                ) {
-                                    SubagentLine(agent)
-                                }
+                                SubagentLine(agent) { detailAgent = agent }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             }
                             item { Spacer(Modifier.height(24.dp)) }
@@ -144,7 +138,7 @@ fun SubagentsViewerScreen(
 }
 
 @Composable
-private fun SubagentLine(agent: com.zcode.android.domain.model.SlashCatalogExtras.AgentEntryFull) {
+private fun SubagentLine(agent: com.zcode.android.domain.model.SlashCatalogExtras.AgentEntryFull, onClick: () -> Unit = {}) {
     Row(
         Modifier
             .fillMaxWidth()

@@ -138,13 +138,7 @@ fun McpViewerScreen(
                     }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("mcp_list")) {
                         items(statuses.keys.sorted(), key = { it }) { name ->
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { detailName = name },
-                            ) {
-                                McpLine(name, statuses[name]!!)
-                            }
+                            McpLine(name, statuses[name]!!) { detailName = name }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         item {
@@ -198,10 +192,11 @@ private fun mcpStatusLabel(status: String): String = stringResource(
 )
 
 @Composable
-private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
+private fun McpLine(name: String, s: McpStatuses.McpServerStatus, onClick: () -> Unit = {}) {
     Column(
         Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 8.dp)
             .testTag("mcp_row_$name"),
     ) {

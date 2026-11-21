@@ -131,13 +131,7 @@ fun ProvidersViewerScreen(
                                     ProviderHeader(provider)
                                 }
                                 items(provider.models, key = { "${provider.providerId}-${it.id}" }) { model ->
-                                    Column(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .clickable { detailModel = provider.providerId to model },
-                                    ) {
-                                        ProviderModelLine(provider.providerId, model)
-                                    }
+                                    ProviderModelLine(provider.providerId, model) { detailModel = provider.providerId to model }
                                 }
                                 item(key = "pad-${provider.providerId}") {
                                     Spacer(Modifier.height(12.dp))
@@ -189,7 +183,7 @@ private fun ProviderHeader(provider: ModelProviderOption) {
 }
 
 @Composable
-private fun ProviderModelLine(providerId: String, model: com.zcode.android.domain.model.ModelOption) {
+private fun ProviderModelLine(providerId: String, model: com.zcode.android.domain.model.ModelOption, onClick: () -> Unit = {}) {
     Column(
         Modifier
             .fillMaxWidth()

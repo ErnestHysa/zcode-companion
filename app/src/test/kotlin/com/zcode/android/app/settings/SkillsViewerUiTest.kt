@@ -55,7 +55,9 @@ class SkillsViewerUiTest {
         rule.onNodeWithTag("skill_row_skill-1").assertIsDisplayed()
         rule.onNodeWithTag("skill_row_skill-3").assertExists()
         // source renders: scope (+ plugin name when plugin-sourced)
-        rule.onNodeWithTag("skill_source_skill-3").assertExists()
+        // G103 (pass-0 Phase 10): the row is CLICKABLE now — the clickable node merges
+        // its descendants, so the row's child tags live in the UNMERGED tree.
+        rule.onNodeWithTag("skill_source_skill-3", useUnmergedTree = true).assertExists()
         // NO enable/disable affordance (reference projection; enabled is literal true on the wire)
         rule.onAllNodesWithTag("skill_toggle").assertCountEquals(0)
     }

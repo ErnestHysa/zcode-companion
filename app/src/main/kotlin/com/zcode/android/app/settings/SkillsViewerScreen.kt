@@ -156,14 +156,7 @@ fun SkillsViewerScreen(
                     }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("skills_list")) {
                         items(filtered, key = { it.id }) { skill ->
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { detailSkill = skill }
-                                    .testTag("skill_row_click_${skill.id}"),
-                            ) {
-                                SkillLine(skill)
-                            }
+                            SkillLine(skill) { detailSkill = skill }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         if (filtered.isEmpty()) {
@@ -186,10 +179,14 @@ fun SkillsViewerScreen(
 }
 
 @Composable
-private fun SkillLine(skill: SkillCatalog.SkillEntry) {
+private fun SkillLine(skill: SkillCatalog.SkillEntry, onClick: () -> Unit = {}) {
     Column(
         Modifier
             .fillMaxWidth()
+            // G103: the row IS the tap target (the detail sheet opens from the row's
+            // own node — an outer clickable wrapper MERGES the row's tag away from
+            // the merged tree and breaks the viewers' existing finders).
+            .clickable { onClick() }
             .padding(vertical = 8.dp)
             .testTag("skill_row_${skill.id}"),
     ) {

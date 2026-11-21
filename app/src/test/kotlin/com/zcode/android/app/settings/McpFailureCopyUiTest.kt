@@ -62,7 +62,7 @@ class McpFailureCopyUiTest {
     @Test
     fun `a failed server renders the mapped copy + advice + raw kind and error`() {
         setContent(statuses("playwright" to server()))
-        rule.onNodeWithTag("mcp_failure_playwright").assertIsDisplayed()
+        rule.onNodeWithTag("mcp_failure_playwright", useUnmergedTree = true).assertIsDisplayed() // G103: the row is clickable — child tags merge away
         rule.onNodeWithText("The MCP server connection timed out. Try again later.").assertExists()
         rule.onNodeWithText("Suggested steps — Confirm the server is running, check the network and proxy, and review server logs. If startup is slow, check the configured connection timeout.", substring = true).assertExists()
         rule.onNodeWithText("connection_timeout").assertExists()
@@ -88,9 +88,11 @@ class McpFailureCopyUiTest {
         for (i in kinds.indices) {
             // LazyColumn: below-the-fold rows are DISPOSED until scrolled to
             // (the recorded Phase-9 blind spot).
-            rule.onNodeWithTag("mcp_list").performScrollToNode(hasTestTag("mcp_failure_copy_srv$i"))
+            // G103 (pass-0 Phase 10): the row is CLICKABLE — scroll to the ROW tag
+            // (the merged tree carries it) and read the child copy unmerged.
+            rule.onNodeWithTag("mcp_list").performScrollToNode(hasTestTag("mcp_row_srv$i"))
             rule.waitForIdle()
-            val text = rule.onAllNodesWithTag("mcp_failure_copy_srv$i").fetchSemanticsNodes()
+            val text = rule.onAllNodesWithTag("mcp_failure_copy_srv$i", useUnmergedTree = true).fetchSemanticsNodes()
                 .first().config.get(androidx.compose.ui.semantics.SemanticsProperties.Text)
                 .single().text
             assertTrue("kind ${kinds[i]} copy is not the raw code", text != kinds[i])
@@ -102,7 +104,7 @@ class McpFailureCopyUiTest {
     @Test
     fun `an unknown failure kind renders raw with no invented copy`() {
         setContent(statuses("x" to server(failureKind = "connectionRefused")))
-        rule.onNodeWithTag("mcp_failure_x").assertIsDisplayed()
+        rule.onNodeWithTag("mcp_failure_x", useUnmergedTree = true).assertIsDisplayed() // G103 merge
         rule.onNodeWithText("connectionRefused").assertExists()
         rule.onAllNodesWithTag("mcp_failure_copy_x").assertCountEquals(0)
         rule.onAllNodesWithTag("mcp_advice_x").assertCountEquals(0)

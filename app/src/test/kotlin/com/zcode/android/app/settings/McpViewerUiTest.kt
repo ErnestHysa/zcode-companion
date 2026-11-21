@@ -52,9 +52,9 @@ class McpViewerUiTest {
         rule.onNodeWithTag("mcp_list").assertIsDisplayed()
         rule.onNodeWithTag("mcp_row_context7").assertExists()
         // Verbatim payload values: status + transport + toolCount.
-        rule.onNodeWithTag("mcp_state_context7").assertExists()
+        rule.onNodeWithTag("mcp_state_context7", useUnmergedTree = true).assertExists() // G103: the row is clickable — child tags merge away
         rule.onNodeWithTag("mcp_row_search").assertExists()
-        rule.onNodeWithTag("mcp_state_search").assertExists()
+        rule.onNodeWithTag("mcp_state_search", useUnmergedTree = true).assertExists() // G103 merge
         rule.onNodeWithTag("mcp_row_docs").assertExists()
         rule.onNodeWithTag("mcp_row_internal-api").assertExists()
         // NO mutation affordance (mode:"status" read; INV-9).

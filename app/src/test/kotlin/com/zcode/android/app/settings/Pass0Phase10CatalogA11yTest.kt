@@ -80,10 +80,10 @@ class Pass0Phase10CatalogA11yTest {
     fun `G103 a skill row opens the detail sheet with the body text`() {
         val catalog = SkillCatalog.decode(fixture("skills-catalog-mixed", "data"))
         rule.setContent { ZCodeTheme { SkillsViewerScreen(port = fakeSkillsPort(catalog)) } }
-        // The clickable detail wrapper MERGES the row's descendants — the row tag
-        // lives in the unmerged tree (the merged tree exposes the clickable row).
-        rule.onAllNodesWithTag("skill_row_skill-1", useUnmergedTree = true).assertCountEquals(1)
-        rule.onAllNodesWithTag("skill_row_click_skill-1")[0].performClick()
+        // The row node ITSELF is the tap target (clickable on the row — the tag
+        // stays in the merged tree, the viewers' existing finders hold).
+        rule.onNodeWithTag("skill_row_skill-1").assertExists()
+        rule.onNodeWithTag("skill_row_skill-1").performClick()
         rule.onAllNodesWithTag("skill_detail_sheet").assertCountEquals(1)
         // The sheet's FIRST field value is the skill's BODY TEXT (the desktop
         // opens skill bodies); the list keeps its in-place description copy.
@@ -95,7 +95,7 @@ class Pass0Phase10CatalogA11yTest {
     fun `G103 the detail sheet closes on dismiss and never invents an enable affordance`() {
         val catalog = SkillCatalog.decode(fixture("skills-catalog-mixed", "data"))
         rule.setContent { ZCodeTheme { SkillsViewerScreen(port = fakeSkillsPort(catalog)) } }
-        rule.onAllNodesWithTag("skill_row_click_skill-1")[0].performClick()
+        rule.onNodeWithTag("skill_row_skill-1").performClick()
         rule.onAllNodesWithTag("skill_detail_sheet").assertCountEquals(1)
         // The reference projection's enabled is literal true — the sheet carries no
         // enable/disable affordance (the GAP-8 rule holds in the detail tier too).
