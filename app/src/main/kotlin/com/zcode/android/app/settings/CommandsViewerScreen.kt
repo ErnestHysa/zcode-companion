@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -58,6 +59,8 @@ fun CommandsViewerScreen(
 ) {
     var loading by remember { mutableStateOf(true) }
     var result by remember { mutableStateOf<CommandsPort.Result?>(null) }
+    // G103: the detail tier — a tap opens the command's read-only field sheet.
+    var detailCmd by remember { mutableStateOf<com.zcode.android.domain.model.SlashCatalogExtras.CommandEntry?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(port) { scope.launch { result = port.commands(); loading = false } }
@@ -93,9 +96,27 @@ fun CommandsViewerScreen(
                     )
                 else -> {
                     val commands = result?.commands ?: return@Column
+                    detailCmd?.let { cmd ->
+                        ViewerDetailSheet(
+                            title = "/" + cmd.name,
+                            tag = "command_detail_sheet",
+                            fields = listOf(
+                                ViewerDetailField(stringResource(R.string.viewer_detail_description), cmd.description),
+                                cmd.inputHint?.let { ViewerDetailField(stringResource(R.string.viewer_detail_hint), it) },
+                                ViewerDetailField(stringResource(R.string.viewer_detail_source), cmd.source),
+                            ).filterNotNull(),
+                            onDismiss = { detailCmd = null },
+                        )
+                    }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("commands_list")) {
                         items(commands, key = { it.source + "/" + it.name }) { cmd ->
-                            CommandLine(cmd)
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { detailCmd = cmd },
+                            ) {
+                                CommandLine(cmd)
+                            }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         item {

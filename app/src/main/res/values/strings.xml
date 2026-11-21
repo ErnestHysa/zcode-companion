@@ -454,4 +454,24 @@
     <string name="settings_whats_new">What\'s new</string>
     <string name="whats_new_dismiss">Continue</string>
     <string name="whats_new_empty">No release notes recorded yet — they appear after you update.</string>
+<!-- pass-0 Phase 10: the catalog DETAIL tier (G103) + the switch a11y (N-BN-1) -->
+    <string name="viewer_detail_description">Description</string>
+    <string name="viewer_detail_scope">Scope</string>
+    <string name="viewer_detail_plugin">Plugin</string>
+    <string name="viewer_detail_path">Path</string>
+    <string name="viewer_detail_status">Status</string>
+    <string name="viewer_detail_transport">Transport</string>
+    <string name="viewer_detail_tools">Tools</string>
+    <string name="viewer_detail_protocol">Protocol</string>
+    <string name="viewer_detail_error">Error</string>
+    <string name="viewer_detail_provider">Provider</string>
+    <string name="viewer_detail_mode">Mode</string>
+    <string name="viewer_detail_workspace">Workspace</string>
+    <string name="viewer_detail_task">Active task</string>
+    <string name="viewer_detail_enabled">Enabled</string>
+    <string name="viewer_detail_hint">Arguments</string>
+    <string name="viewer_detail_source">Source</string>
+    <string name="viewer_detail_id">Model id</string>
+    <string name="viewer_detail_badge">Badge</string>
+    <string name="plugin_enable_switch_a11y">Enable %1$s</string>
 </resources>

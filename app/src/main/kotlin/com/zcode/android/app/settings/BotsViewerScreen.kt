@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +61,8 @@ fun BotsViewerScreen(
 ) {
     var loading by remember { mutableStateOf(true) }
     var result by remember { mutableStateOf<BotsPort.Result?>(null) }
+    // G103: the detail tier — a tap opens the bot's read-only field sheet.
+    var detailBot by remember { mutableStateOf<com.zcode.android.domain.model.SlashCatalogExtras.BotEntry?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(port) { scope.launch { result = port.bots(); loading = false } }
@@ -104,6 +107,20 @@ fun BotsViewerScreen(
                         EmptyState(title = stringResource(R.string.bots_empty), modifier = Modifier.fillMaxSize().testTag("bots_empty"))
                     else -> {
                         val bots = result?.bots ?: return@Column
+                        detailBot?.let { bot ->
+                            ViewerDetailSheet(
+                                title = bot.botId,
+                                tag = "bot_detail_sheet",
+                                fields = listOf(
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_provider), bot.provider),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_mode), bot.mode),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_workspace), bot.workspacePath),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_task), bot.activeTaskId),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_enabled), bot.enabled.toString()),
+                                ),
+                                onDismiss = { detailBot = null },
+                            )
+                        }
                         LazyColumn(
                             Modifier
                                 .fillMaxSize()
@@ -111,7 +128,13 @@ fun BotsViewerScreen(
                                 .testTag("bots_list"),
                         ) {
                             items(bots, key = { it.botId }) { bot ->
-                                BotLine(bot)
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { detailBot = bot },
+                                ) {
+                                    BotLine(bot)
+                                }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             }
                             item { Spacer(Modifier.height(24.dp)) }

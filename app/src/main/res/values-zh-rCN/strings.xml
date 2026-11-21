@@ -343,4 +343,24 @@
     <string name="srcsrv_unavailable">当前连接无法获取源服务器</string>
     <string name="srcsrv_empty">此桌面没有源服务器</string>
     <string name="srcsrv_workspaces">声明了 %1$d 个工作区</string>
+<!-- pass-0 Phase 10: 目录详情层（G103）与开关无障碍（N-BN-1） -->
+    <string name="viewer_detail_description">描述</string>
+    <string name="viewer_detail_scope">范围</string>
+    <string name="viewer_detail_plugin">插件</string>
+    <string name="viewer_detail_path">路径</string>
+    <string name="viewer_detail_status">状态</string>
+    <string name="viewer_detail_transport">传输方式</string>
+    <string name="viewer_detail_tools">工具数</string>
+    <string name="viewer_detail_protocol">协议</string>
+    <string name="viewer_detail_error">错误</string>
+    <string name="viewer_detail_provider">提供方</string>
+    <string name="viewer_detail_mode">模式</string>
+    <string name="viewer_detail_workspace">工作区</string>
+    <string name="viewer_detail_task">活动任务</string>
+    <string name="viewer_detail_enabled">已启用</string>
+    <string name="viewer_detail_hint">参数</string>
+    <string name="viewer_detail_source">来源</string>
+    <string name="viewer_detail_id">模型 ID</string>
+    <string name="viewer_detail_badge">徽标</string>
+    <string name="plugin_enable_switch_a11y">启用 %1$s</string>
 </resources>

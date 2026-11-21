@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -69,6 +70,8 @@ fun McpViewerScreen(
 ) {
     var loading by remember { mutableStateOf(true) }
     var result by remember { mutableStateOf<McpPort.Result?>(null) }
+    // G103: the detail tier — a tap opens the server's read-only field sheet.
+    var detailName by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(port) { scope.launch { result = port.statuses(); loading = false } }
@@ -116,9 +119,32 @@ fun McpViewerScreen(
                     EmptyState(title = stringResource(R.string.mcp_empty), modifier = Modifier.fillMaxSize().testTag("mcp_empty"))
                 else -> {
                     val statuses = result?.statuses?.statuses ?: return@Column
+                    detailName?.let { name ->
+                        val st = statuses[name]
+                        ViewerDetailSheet(
+                            title = name,
+                            tag = "mcp_detail_sheet",
+                            fields = st?.let {
+                                listOfNotNull(
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_status), it.status),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_transport), it.transport),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_tools), it.toolCount.toString()),
+                                    it.protocolEra?.let { era -> ViewerDetailField(stringResource(R.string.viewer_detail_protocol), era) },
+                                    it.error?.let { err -> ViewerDetailField(stringResource(R.string.viewer_detail_error), err) },
+                                )
+                            } ?: emptyList(),
+                            onDismiss = { detailName = null },
+                        )
+                    }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("mcp_list")) {
                         items(statuses.keys.sorted(), key = { it }) { name ->
-                            McpLine(name, statuses[name]!!)
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { detailName = name },
+                            ) {
+                                McpLine(name, statuses[name]!!)
+                            }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         item {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -69,6 +70,10 @@ fun SkillsViewerScreen(
     var loading by remember { mutableStateOf(true) }
     var result by remember { mutableStateOf<SkillsPort.Result?>(null) }
     var query by remember { mutableStateOf("") }
+    // G103 (pass-0 Phase 10): the detail tier — a tap on a skill row opens the
+    // read-only detail sheet (the desktop opens skill bodies; the catalog was
+    // non-clickable by construction).
+    var detailSkill by remember { mutableStateOf<SkillCatalog.SkillEntry?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(port) { scope.launch { result = port.catalog(); loading = false } }
@@ -136,9 +141,29 @@ fun SkillsViewerScreen(
                         EmptyState(title = stringResource(R.string.skills_empty), modifier = Modifier.testTag("skills_empty"))
                         return@Column
                     }
+                    detailSkill?.let { skill ->
+                        ViewerDetailSheet(
+                            title = skill.name,
+                            tag = "skill_detail_sheet",
+                            fields = listOf(
+                                ViewerDetailField(stringResource(R.string.viewer_detail_description), skill.description),
+                                ViewerDetailField(stringResource(R.string.viewer_detail_scope), skill.scope),
+                                skill.pluginName?.let { ViewerDetailField(stringResource(R.string.viewer_detail_plugin), it) },
+                                ViewerDetailField(stringResource(R.string.viewer_detail_path), skill.path),
+                            ).filterNotNull(),
+                            onDismiss = { detailSkill = null },
+                        )
+                    }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("skills_list")) {
                         items(filtered, key = { it.id }) { skill ->
-                            SkillLine(skill)
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { detailSkill = skill }
+                                    .testTag("skill_row_click_${skill.id}"),
+                            ) {
+                                SkillLine(skill)
+                            }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         if (filtered.isEmpty()) {

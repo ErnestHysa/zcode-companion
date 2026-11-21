@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +61,8 @@ fun ProvidersViewerScreen(
 ) {
     var loading by remember { mutableStateOf(true) }
     var result by remember { mutableStateOf<ProvidersPort.Result?>(null) }
+    // G103: the detail tier — a tap on a MODEL row opens its read-only sheet.
+    var detailModel by remember { mutableStateOf<Pair<String, com.zcode.android.domain.model.ModelOption>?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(port) { scope.launch { result = port.providers(); loading = false } }
@@ -104,6 +107,19 @@ fun ProvidersViewerScreen(
                         EmptyState(title = stringResource(R.string.providers_empty), modifier = Modifier.fillMaxSize().testTag("providers_empty"))
                     else -> {
                         val providers = result?.providers ?: return@Column
+                        detailModel?.let { (providerId, model) ->
+                            ViewerDetailSheet(
+                                title = model.label,
+                                tag = "provider_detail_sheet",
+                                fields = listOf(
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_id), model.id),
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_provider), providerId),
+                                    model.badge?.let { ViewerDetailField(stringResource(R.string.viewer_detail_badge), it) },
+                                    ViewerDetailField(stringResource(R.string.viewer_detail_enabled), model.available.toString()),
+                                ).filterNotNull(),
+                                onDismiss = { detailModel = null },
+                            )
+                        }
                         LazyColumn(
                             Modifier
                                 .fillMaxSize()
@@ -115,7 +131,13 @@ fun ProvidersViewerScreen(
                                     ProviderHeader(provider)
                                 }
                                 items(provider.models, key = { "${provider.providerId}-${it.id}" }) { model ->
-                                    ProviderModelLine(provider.providerId, model)
+                                    Column(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable { detailModel = provider.providerId to model },
+                                    ) {
+                                        ProviderModelLine(provider.providerId, model)
+                                    }
                                 }
                                 item(key = "pad-${provider.providerId}") {
                                     Spacer(Modifier.height(12.dp))

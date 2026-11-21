@@ -36,6 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
@@ -239,12 +242,18 @@ private fun PluginLine(plugin: PluginsView.PluginInfo, busy: Boolean = false, on
         // ADR-023: the badge keeps the state summary; the Switch is the sanctioned
         // enable affordance (the ack drives the re-list — wire-true, no optimistic flip).
         onToggle?.let { toggle ->
+            // N-BN-1 (pass-0 Phase 10): the row's only interactive element announces
+            // itself — "Enable <plugin name>" (TalkBack silence was the defect; the
+            // a11y pin holds the vocabulary). Resolved OUTSIDE the semantics lambda
+            // (a plain modifier builder is not a composable context).
+            val switchDescription = stringResource(R.string.plugin_enable_switch_a11y, plugin.name)
             androidx.compose.material3.Switch(
                 checked = plugin.enabled,
                 onCheckedChange = toggle,
                 enabled = !busy,
                 modifier = Modifier
                     .padding(start = 8.dp)
+                    .semantics { contentDescription = switchDescription }
                     .testTag("plugin_switch_${plugin.id}"),
             )
         }

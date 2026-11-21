@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -83,8 +84,10 @@ class Pass0Phase10CatalogA11yTest {
         // Pre-fix the rows were NON-CLICKABLE BY CONSTRUCTION — the tap opens nothing.
         rule.onNodeWithTag("skill_row_skill-1").performClick()
         rule.onAllNodesWithTag("skill_detail_sheet").assertCountEquals(1)
-        rule.onAllNodesWithText("Drafts conventional commits.", substring = true)
-            .assertCountEquals(1)
+        // The sheet's FIRST field value is the skill's BODY TEXT (the desktop
+        // opens skill bodies); the list keeps its in-place description copy.
+        rule.onAllNodesWithTag("skill_detail_sheet_value")[0]
+            .assertTextEquals("Drafts conventional commits.")
     }
 
     @Test
