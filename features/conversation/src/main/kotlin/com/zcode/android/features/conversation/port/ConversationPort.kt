@@ -59,6 +59,28 @@ interface ConversationPort {
         val source: String?,
     )
 
+    /**
+     * G92 (pass-0 Phase 10): the workspace config's `configOptions` row — the
+     * desktop's config OPTION surface (select/boolean + the current value) that
+     * was decoded in V4WorkspaceConfig with zero feature consumers. One adapter
+     * renders it in the session-context sheet; [optionCount] is the select's
+     * vocabulary size (0 = boolean).
+     */
+    data class ConfigOptionView(
+        val id: String,
+        val name: String,
+        val description: String?,
+        val category: String?,
+        val type: String,
+        val currentValue: String?,
+        val optionCount: Int,
+    )
+
+    /** G92: the config options for the task's workspace (empty = none arrived).
+     *  Default = honest-empty so the existing fakes stay source-compatible. */
+    fun observeConfigOptions(taskId: String): Flow<List<ConfigOptionView>> =
+        kotlinx.coroutines.flow.flowOf(emptyList())
+
     // ---------------------------------------------------------------- Phase 4C (C2): the other two slash sections
 
     data class SlashSkillView(val name: String, val description: String, val scope: String)

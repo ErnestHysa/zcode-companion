@@ -317,6 +317,27 @@ class DefaultConversationPort(
             }
         }
 
+    /** G92 (pass-0 Phase 10): the configOptions adapter — the one demoed consume. */
+    override fun observeConfigOptions(taskId: String): Flow<List<ConversationPort.ConfigOptionView>> =
+        kotlinx.coroutines.flow.channelFlow {
+            val key = workspaceKeyFor(taskId)
+            hub.workspaceCatalog(key).collect { catalog ->
+                send(
+                    catalog?.configOptions.orEmpty().map { o ->
+                        ConversationPort.ConfigOptionView(
+                            id = o.id,
+                            name = o.name,
+                            description = o.description,
+                            category = o.category,
+                            type = o.type,
+                            currentValue = o.currentValue,
+                            optionCount = o.options.size,
+                        )
+                    },
+                )
+            }
+        }
+
     private suspend fun workspaceKeyFor(taskId: String): String =
         workspaceByTask[taskId]?.raw ?: task(taskId)?.workspace?.raw ?: taskId
 

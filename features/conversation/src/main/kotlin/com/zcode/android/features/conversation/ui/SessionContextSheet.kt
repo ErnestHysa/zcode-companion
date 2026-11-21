@@ -78,6 +78,13 @@ fun SessionContextSheet(
      * (the honest absent face; never a silent 0).
      */
     taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
+    /**
+     * G92 (pass-0 Phase 10): the workspace config's configOptions (select/boolean
+     * + current values) — decoded in V4WorkspaceConfig since Phase 2 with zero
+     * consumers; this section is the ONE demoed adapter. Empty list renders
+     * NOTHING (never invented options).
+     */
+    configOptions: List<com.zcode.android.features.conversation.port.ConversationPort.ConfigOptionView> = emptyList(),
 ) {
     // F-P20-A: the sheet's choice gate — the objective typed in the Set-goal dialog,
     // held while the disposition dialog asks (a dismissal drops it).
@@ -112,6 +119,57 @@ fun SessionContextSheet(
             // G60: the per-task TOKEN usage (the desktop tokenDebug plane's totals —
             // input/output/reasoning/cache + model request/error counts).
             TaskTokenUsageSection(taskUsageProvider)
+            // G92 (pass-0 Phase 10): the workspace CONFIG OPTIONS section — the
+            // desktop's select/boolean option surface with its current values.
+            if (configOptions.isNotEmpty()) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("config_options_section"),
+                ) {
+                    Text(
+                        stringResource(com.zcode.android.features.conversation.R.string.config_options_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    for (option in configOptions) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .testTag("config_option_${option.id}"),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    option.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    option.type,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            option.currentValue?.let { value ->
+                                Text(
+                                    stringResource(com.zcode.android.features.conversation.R.string.config_option_current, value),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            option.description?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             // I2.3: the session summary capsule (duration · goal iteration · background
             // tasks · subagents) — nothing renders for an empty session.
             SessionSummaryPanel(

@@ -920,6 +920,11 @@ private fun ConversationRoute(
     onReportIssue: ((String) -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
+    // G92 (pass-0 Phase 10): the workspace config options for the context sheet,
+    // keyed to the open task (the workspace-config topic's configOptions decode).
+    val configOptionsState by remember(state.task?.taskId) {
+        container.conversationPort.observeConfigOptions(state.task?.taskId.orEmpty())
+    }.collectAsState(initial = emptyList())
     // G78 (vc52 Phase 11): the pending Files line comment lands in the composer
     // exactly once (the desktop's codeViewer.comment contract — the quoted file/line
     // context rides the next message; never an auto-send).
@@ -1235,6 +1240,7 @@ private fun ConversationRoute(
         onDeleteQueueItem = vm::deleteQueueItem,
         defaultFollowupMode = prefs.interactionBehavior,
         // G60 (vc52 Phase 12): the per-task token usage read for the context sheet.
+        configOptions = configOptionsState,
         taskUsageProvider = {
             runCatching { container.hub.agentFacade().taskTokenUsage(state.task?.taskId.orEmpty()) }.getOrNull()
         },

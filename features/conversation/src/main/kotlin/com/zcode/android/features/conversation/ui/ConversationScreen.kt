@@ -202,6 +202,8 @@ fun ConversationScreen(
     defaultFollowupMode: String? = null,
     /** G60 (vc52 Phase 12): the per-task token usage read for the context sheet. */
     taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
+    /** G92 (pass-0 Phase 10): the workspace config options for the context sheet. */
+    configOptions: List<com.zcode.android.features.conversation.port.ConversationPort.ConfigOptionView> = emptyList(),
     // ---- Phase 5B (A3.12 + A3.13): plans viewer + trajectory/search ----
     plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
     showTrajectory: Boolean = false,
@@ -357,6 +359,7 @@ fun ConversationScreen(
                 defaultFollowupMode = defaultFollowupMode,
                 onSetFollowupMode = onSetFollowupMode,
                 taskUsageProvider = taskUsageProvider,
+                configOptions = configOptions,
                 onOpenSubagentChildSession = onOpenSubagentChildSession,
             )
             // G5: the find bar — query + match count + prev/next jump + close.
@@ -794,6 +797,8 @@ private fun Header(
     taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
     /** N-BK-1(a) (vc52 Phase 12): open the subagent's CHILD session. */
     onOpenSubagentChildSession: (String) -> Unit = {},
+    /** G92 (pass-0 Phase 10): the workspace config options for the context sheet. */
+    configOptions: List<com.zcode.android.features.conversation.port.ConversationPort.ConfigOptionView> = emptyList(),
 ) {
     // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
@@ -913,6 +918,7 @@ private fun Header(
         SessionContextSheet(
             sessionState = state.sessionState,
             taskUsageProvider = taskUsageProvider,
+            configOptions = configOptions,
             rows = state.rows,
             workflowRuns = workflowRuns,
             plans = plans,
