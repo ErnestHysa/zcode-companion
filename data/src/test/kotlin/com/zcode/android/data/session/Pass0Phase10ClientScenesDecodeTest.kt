@@ -45,7 +45,7 @@ class Pass0Phase10ClientScenesDecodeTest {
     }
 
     @Test
-    fun `cn-only resolved option feeds the prompt text; missing reference skips`() {
+    fun `cn-only resolved option feeds the prompt text and missing references skip`() {
         val cnOnly = """
             {"code":0,"msg":"ok","data":[
               {"scene":"draft-suggestion","options":{

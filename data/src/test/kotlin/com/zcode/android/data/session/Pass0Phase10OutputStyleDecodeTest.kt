@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 /**
  * pass-0 Phase 10 — G84's decoder pin. `output-style` channel `listStyles` →
  * `{styles:[{id,name,description,enabled,isBuiltIn,filePath?}]}` (built-ins +
- * `~/.claude/output-styles/*.md` customs, `enabled: id===activeId`) and
+ * the ~/.claude/output-styles markdown customs, `enabled: id===activeId`) and
  * `getActiveStyle` → `{styleId: string|null}` — the READ-ONLY mirror of the
  * desktop's 7-verb outputStyleService (write verbs exist nowhere phone-side).
  */
