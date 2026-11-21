@@ -569,4 +569,7 @@
     <string name="tool_kind_agent">Agent</string>
     <string name="tool_kind_skill">Skill</string>
     <string name="tool_kind_workflow">Workflow</string>
+<string name="preview_html_desktop_only">Generated UI — open on your desktop</string>
+<string name="config_options_title">Workspace config options</string>
+    <string name="config_option_current">current: %1$s</string>
 </resources>

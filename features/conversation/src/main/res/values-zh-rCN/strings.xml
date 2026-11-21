@@ -412,4 +412,7 @@
     <string name="tool_kind_agent">代理</string>
     <string name="tool_kind_skill">技能</string>
     <string name="tool_kind_workflow">工作流</string>
+<string name="preview_html_desktop_only">生成式 UI — 请在桌面端打开</string>
+<string name="config_options_title">工作区配置选项</string>
+    <string name="config_option_current">当前：%1$s</string>
 </resources>

@@ -953,7 +953,12 @@ fun ArtifactPreviewCard(
                     text = stringResource(
                         when (kind) {
                             GeneratedArtifactPreviewKind.MARKDOWN -> R.string.preview_markdown
-                            GeneratedArtifactPreviewKind.HTML -> R.string.preview_html
+                            // G81 (pass-0 Phase 10): the gen-ui carrier kind carries the
+                            // honest desktopOnly face — the desktop renders generated
+                            // interactive UI in its plugin sandbox; the phone accepts
+                            // zero files (the full 4-part genUiContext consume is a
+                            // recorded no-action; this face is the roadmap minimum).
+                            GeneratedArtifactPreviewKind.HTML -> R.string.preview_html_desktop_only
                             GeneratedArtifactPreviewKind.DOCX -> R.string.preview_docx
                             GeneratedArtifactPreviewKind.XLSX -> R.string.preview_xlsx
                             GeneratedArtifactPreviewKind.PPTX -> R.string.preview_pptx
