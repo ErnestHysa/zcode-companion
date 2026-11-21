@@ -266,6 +266,18 @@ class MockZCode(
         var subagentsList: JsonObject? = null
         /** G30 (vc51 Phase 4B): the read-only bots viewer's scripted inventory. */
         var botsList: JsonObject? = null
+        // pass-0 Phase 10 (G83/G84/G101/G98): the parity-mirror channels — the
+        // payloads mirror the REAL desktop's asar shapes (ec475e6e…).
+        /** G83: `client-scenes.list` — the {code,msg,data} cloud envelope. */
+        var clientScenesList: JsonObject? = null
+        /** G84: `output-style.listStyles`. */
+        var outputStyleList: JsonObject? = null
+        /** G84: `output-style.getActiveStyle`. */
+        var outputStyleActive: JsonObject? = null
+        /** G101: `cua-permission.getStatus`. */
+        var cuaPermissionStatus: JsonObject? = null
+        /** G98: `source-server-management.getSnapshot`. */
+        var sourceServerSnapshot: JsonObject? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
         /**
@@ -3102,6 +3114,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // RPC (fs-backed provider runtimes), so the viewer degrades honestly there;
                 // the mock serves the scripted inventory for the rig.
                 "bots" -> handleBotsPromise(id, name, argAsObject(arg))
+                // pass-0 Phase 10: the parity-mirror channels (the REAL desktop's
+                // channel strings from the asar registry).
+                "client-scenes" -> handleParityMirrorPromise(id, channelName, name, script.clientScenesList)
+                "output-style" -> when (name) {
+                    "listStyles" -> handleParityMirrorPromise(id, channelName, name, script.outputStyleList)
+                    "getActiveStyle" -> handleParityMirrorPromise(id, channelName, name, script.outputStyleActive)
+                    else -> respondError(id, "fault.mock.unknownMethod:output-style-${name ?: "?"}")
+                }
+                "cua-permission" -> handleParityMirrorPromise(id, channelName, name, script.cuaPermissionStatus)
+                "source-server-management" -> handleParityMirrorPromise(id, channelName, name, script.sourceServerSnapshot)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -5379,6 +5401,20 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
             }
             else -> respondError(id, "fault.mock.unknownMethod:bots-${name ?: "?"}")
+        }
+    }
+
+    /**
+     * pass-0 Phase 10: the parity-mirror channels' scripted list leg — the same
+     * bots-handler shape (scripted payload replayed verbatim; unscripted → the
+     * honest typed fault the mirror degrades on).
+     */
+    private fun handleParityMirrorPromise(id: Int, channelName: String, name: String?, result: JsonObject?) {
+        println("MOCK: $channelName ${name ?: "?"}")
+        if (result == null) {
+            respondError(id, "fault.mock.unscripted:$channelName.${name ?: "?"}")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
         }
     }
 

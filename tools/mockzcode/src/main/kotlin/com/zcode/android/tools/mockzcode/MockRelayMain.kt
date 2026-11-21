@@ -1273,6 +1273,15 @@ fun main() {
     // G30 (vc51 Phase 4B): the bots-viewer seed — two bots across providers/modes so the
     // read-only viewer renders both mode faces on the rig.
     mock.script.botsList = botsViewerSeed()
+    // pass-0 Phase 10 (G83/G84/G101/G98): the parity-mirror seeds — payload shapes
+    // mirror the REAL desktop's asar fields so the four mirror screens render their
+    // real rows on the rig (scenes prompts / style list + active / CUA health /
+    // source-server directory with an online + a failed host).
+    mock.script.clientScenesList = clientScenesSeed()
+    mock.script.outputStyleList = outputStyleSeed()
+    mock.script.outputStyleActive = JsonObject(mapOf("styleId" to JsonPrimitive("custom-explain")))
+    mock.script.cuaPermissionStatus = cuaStatusSeed()
+    mock.script.sourceServerSnapshot = sourceServersSeed()
     // p48 rig leg (MOCK_CATALOG_EMPTY=1): serve EMPTY catalogs so the three viewer
     // screens' EMPTY faces are drivable (the pass-40 census receipted only the
     // seeded-list renders; the empty faces were never live-driven).
@@ -1549,6 +1558,130 @@ fun armCuaRigForTest(mock: MockZCode) {
     cuaRow("left_click", "{\"ok\":true,\"x\":420,\"y\":230}")
     cuaRow("type", "{\"ok\":true,\"chars\":16}")
 }
+
+/** pass-0 Phase 10 (G83): the client-scenes draft-suggestion feed — one prompt
+ *  resolving through an option group (the desktop's Iin adapter shape), one
+ *  referencing a missing option (the SKIP face), a second scene (the count). */
+fun clientScenesSeed(): JsonObject = JsonObject(mapOf(
+    "code" to JsonPrimitive(0),
+    "msg" to JsonPrimitive("ok"),
+    "data" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "scene" to JsonPrimitive("draft-suggestion"),
+            "options" to JsonObject(mapOf(
+                "prompts" to JsonObject(mapOf(
+                    "items" to JsonArray(listOf(
+                        JsonObject(mapOf(
+                            "id" to JsonPrimitive("rig-p1"),
+                            "defaults" to JsonObject(mapOf("group-a" to JsonArray(listOf(JsonPrimitive("rig-opt-1"))))),
+                        )),
+                        JsonObject(mapOf(
+                            "id" to JsonPrimitive("rig-p2"),
+                            "defaults" to JsonObject(mapOf("group-a" to JsonArray(listOf(JsonPrimitive("rig-opt-missing"))))),
+                        )),
+                    )),
+                )),
+                "group-a" to JsonObject(mapOf(
+                    "items" to JsonArray(listOf(
+                        JsonObject(mapOf(
+                            "id" to JsonPrimitive("rig-opt-1"),
+                            "contents" to JsonObject(mapOf(
+                                "en" to JsonPrimitive("Review the latest rig commits"),
+                                "cn" to JsonPrimitive("检查最新的 rig 提交"),
+                            )),
+                        )),
+                    )),
+                )),
+            )),
+        )),
+        JsonObject(mapOf("scene" to JsonPrimitive("other-scene"), "options" to JsonObject(emptyMap()))),
+    )),
+))
+
+/** pass-0 Phase 10 (G84): the output-style catalog — a built-in + a custom, the
+ *  custom ACTIVE (the seed's getActiveStyle carries the same id). */
+fun outputStyleSeed(): JsonObject = JsonObject(mapOf(
+    "styles" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("default"),
+            "name" to JsonPrimitive("Default"),
+            "description" to JsonPrimitive(""),
+            "enabled" to JsonPrimitive(true),
+            "isBuiltIn" to JsonPrimitive(true),
+        )),
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("custom-explain"),
+            "name" to JsonPrimitive("Explain"),
+            "description" to JsonPrimitive("Explain every step"),
+            "enabled" to JsonPrimitive(false),
+            "isBuiltIn" to JsonPrimitive(false),
+            "filePath" to JsonPrimitive("/Users/rig/.claude/output-styles/explain.md"),
+        )),
+    )),
+))
+
+/** pass-0 Phase 10 (G101): the desktop's CUA health — granted owner, probes
+ *  passed, screen-capture probe failed (the mixed face the card must render). */
+fun cuaStatusSeed(): JsonObject = JsonObject(mapOf(
+    "available" to JsonPrimitive(true),
+    "grantOwner" to JsonPrimitive("ernest"),
+    "grantOwnerDisplayName" to JsonPrimitive("Ernest"),
+    "accessibility" to JsonPrimitive(true),
+    "accessibilityProbeOk" to JsonPrimitive(true),
+    "screenRecording" to JsonPrimitive(true),
+    "screenCaptureProbeOk" to JsonPrimitive(false),
+    "idle" to JsonPrimitive(false),
+))
+
+/** pass-0 Phase 10 (G98): the source-server directory — one ONLINE ssh host with
+ *  a declared workspace + one FAILED host (the error face), faithful to the Dh/J0
+ *  zod shapes (uuid ids, the raw state vocabulary). */
+fun sourceServersSeed(): JsonObject = JsonObject(mapOf(
+    "generation" to JsonPrimitive(7),
+    "servers" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "sourceServerId" to JsonPrimitive("11111111-1111-1111-1111-111111111111"),
+            "displayName" to JsonPrimitive("gpu-box"),
+            "osUser" to JsonPrimitive("ernie"),
+            "hostname" to JsonPrimitive("gpu-box.local"),
+            "lastSeenVersion" to JsonPrimitive("3.18.1"),
+            "lastOnlineAt" to JsonPrimitive(1_732_000_000_000L),
+            "installState" to JsonPrimitive("installed"),
+            "declaredWorkspaces" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "workspacePath" to JsonPrimitive("/srv/proj"),
+                    "workspaceIdentity" to JsonPrimitive("/srv/proj"),
+                    "label" to JsonPrimitive("Proj"),
+                )),
+            )),
+        )),
+        JsonObject(mapOf(
+            "sourceServerId" to JsonPrimitive("22222222-2222-2222-2222-222222222222"),
+            "displayName" to JsonPrimitive("nas"),
+            "installState" to JsonPrimitive("uninstalled"),
+            "declaredWorkspaces" to JsonArray(emptyList()),
+        )),
+    )),
+    "profiles" to JsonArray(emptyList()),
+    "workspaceHistory" to JsonArray(emptyList()),
+    "states" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "profileId" to JsonPrimitive("33333333-3333-3333-3333-333333333333"),
+            "sourceServerId" to JsonPrimitive("11111111-1111-1111-1111-111111111111"),
+            "state" to JsonPrimitive("online"),
+            "updateAvailability" to JsonPrimitive("none"),
+        )),
+        JsonObject(mapOf(
+            "profileId" to JsonPrimitive("44444444-4444-4444-4444-444444444444"),
+            "sourceServerId" to JsonPrimitive("22222222-2222-2222-2222-222222222222"),
+            "state" to JsonPrimitive("failed"),
+            "error" to JsonPrimitive("SSH refused"),
+        )),
+    )),
+    "failedPathCount" to JsonPrimitive(0),
+    "abandonedPathCount" to JsonPrimitive(0),
+    "migrationCounts" to JsonArray(emptyList()),
+))
 
 fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
     "bots" to JsonArray(listOf(
