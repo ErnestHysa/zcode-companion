@@ -191,13 +191,25 @@ class Pass0Phase10MirrorsUiTest {
     }
 
     @Test
-    fun `a port error renders the unavailable face on every mirror`() {
+    fun `G98 a port error renders the unavailable face`() {
         rule.setContent { ZCodeTheme { SourceServersViewerScreen(port = fakeSrcPort(null, error = "refused")) } }
         rule.onNodeWithTag("srcsrv_error").assertExists()
+    }
+
+    @Test
+    fun `G84 a port error renders the unavailable face`() {
         rule.setContent { ZCodeTheme { OutputStyleViewerScreen(port = fakeStylePort(null, error = "refused")) } }
         rule.onNodeWithTag("style_error").assertExists()
+    }
+
+    @Test
+    fun `G83 a port error renders the unavailable face`() {
         rule.setContent { ZCodeTheme { ClientScenesViewerScreen(port = fakeScenesPort(null, error = "refused")) } }
         rule.onNodeWithTag("scenes_error").assertExists()
+    }
+
+    @Test
+    fun `G101 a port error renders the unavailable face`() {
         rule.setContent { ZCodeTheme { CuaStatusViewerScreen(port = fakeCuaPort(null, error = "refused")) } }
         rule.onNodeWithTag("cua_status_error").assertExists()
     }

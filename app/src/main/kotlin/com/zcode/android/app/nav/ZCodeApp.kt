@@ -1459,6 +1459,10 @@ private fun SettingsRoute(
     onOpenHooks: () -> Unit = {},
     onOpenCommands: () -> Unit = {},
     onOpenMemory: () -> Unit = {},
+    onOpenScenes: () -> Unit = {},
+    onOpenStyle: () -> Unit = {},
+    onOpenCuaStatus: () -> Unit = {},
+    onOpenSourceServers: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -1476,5 +1480,9 @@ private fun SettingsRoute(
         onOpenHooks = onOpenHooks,
         onOpenCommands = onOpenCommands,
         onOpenMemory = onOpenMemory,
+        onOpenScenes = onOpenScenes,
+        onOpenStyle = onOpenStyle,
+        onOpenCuaStatus = onOpenCuaStatus,
+        onOpenSourceServers = onOpenSourceServers,
     )
 }

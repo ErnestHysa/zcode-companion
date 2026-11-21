@@ -21,6 +21,10 @@ import com.zcode.android.app.connect.DefaultProvidersPort
 import com.zcode.android.app.connect.DefaultSubagentsPort
 import com.zcode.android.app.connect.DefaultMcpPort
 import com.zcode.android.app.connect.DefaultHooksPort
+import com.zcode.android.app.connect.DefaultClientScenesPort
+import com.zcode.android.app.connect.DefaultOutputStylePort
+import com.zcode.android.app.connect.DefaultCuaStatusPort
+import com.zcode.android.app.connect.DefaultSourceServersPort
 import com.zcode.android.app.connect.DefaultCommandsPort
 import com.zcode.android.app.connect.DefaultMemoryPort
 import com.zcode.android.app.connect.DefaultSkillsPort
