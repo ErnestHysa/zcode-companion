@@ -417,6 +417,35 @@
 <string name="memory_file_changed_hint">It may have changed or been deleted since the listing — pull to refresh.</string>
 <string name="settings_memory_row">Memory</string>
 <string name="settings_memory_sub">Read-only view · saved workspace memories on this desktop</string>
+<!-- pass-0 Phase 10: the desktop-parity read mirrors (G83/G84/G101/G98) -->
+    <string name="settings_scenes_row">Client scenes</string>
+    <string name="settings_scenes_sub">Read-only · suggested prompts this desktop serves</string>
+    <string name="scenes_title">Client scenes</string>
+    <string name="scenes_unavailable">Client scenes are unavailable on this connection</string>
+    <string name="scenes_empty">No suggested prompts on this desktop</string>
+    <string name="settings_style_row">Output style</string>
+    <string name="settings_style_sub">Read-only · the desktop\'s active output style + catalog</string>
+    <string name="style_title">Output style</string>
+    <string name="style_unavailable">Output styles are unavailable on this connection</string>
+    <string name="style_empty">No output styles on this desktop</string>
+    <string name="style_active">Active</string>
+    <string name="settings_cua_row">Computer Use status</string>
+    <string name="settings_cua_sub">Read-only · the desktop\'s CUA permission health</string>
+    <string name="cua_title">Computer Use status</string>
+    <string name="cua_unavailable">The CUA status is unavailable on this connection</string>
+    <string name="cua_available">Available</string>
+    <string name="cua_not_available">Unavailable</string>
+    <string name="cua_idle">idle</string>
+    <string name="cua_owner">Grant owner</string>
+    <string name="cua_accessibility">Accessibility</string>
+    <string name="cua_screen_recording">Screen recording</string>
+    <string name="settings_srcsrv_row">Source servers</string>
+    <string name="settings_srcsrv_sub">Read-only · the desktop\'s remote compute hosts</string>
+    <string name="srcsrv_title">Source servers</string>
+    <string name="srcsrv_unavailable">Source servers are unavailable on this connection</string>
+    <string name="srcsrv_empty">No source servers on this desktop</string>
+    <string name="srcsrv_workspaces">%1$d declared workspace(s)</string>
+
 <string name="settings_self_report_row">Report device state to your desktop</string>
 <string name="settings_self_report_sub">Optional. Shares which task you are viewing and connection diagnostics with YOUR paired desktop only. Off by default; no analytics.</string>
 <string name="plugins_boundary_note">Installed-plugin list with the enable toggle (ADR-023). Marketplace add/remove, install/uninstall and overview stay on the desktop.</string>

@@ -71,6 +71,10 @@ object Routes {
     const val HOOKS = "hooks"
     const val COMMANDS = "commands"
     const val MEMORY = "memory"
+    const val SCENES = "scenes"
+    const val STYLE = "style"
+    const val CUA_STATUS = "cua-status"
+    const val SRC_SERVERS = "src-servers"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -513,6 +517,10 @@ fun ZCodeApp(
                 onOpenHooks = { nav.navigate(Routes.HOOKS) },
                 onOpenCommands = { nav.navigate(Routes.COMMANDS) },
                 onOpenMemory = { nav.navigate(Routes.MEMORY) },
+                onOpenScenes = { nav.navigate(Routes.SCENES) },
+                onOpenStyle = { nav.navigate(Routes.STYLE) },
+                onOpenCuaStatus = { nav.navigate(Routes.CUA_STATUS) },
+                onOpenSourceServers = { nav.navigate(Routes.SRC_SERVERS) },
             )
         }
         composable(Routes.USAGE) {
@@ -548,6 +556,26 @@ fun ZCodeApp(
             // channel (the desktop memory tree is desktop-local node:fs — the phone
             // reads it through readdir/readTextFile; INV-9, no write affordance).
             com.zcode.android.app.settings.MemoryViewerScreen(port = container.memoryPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.SCENES) {
+            // G83 (pass-0 Phase 10): the client-scenes ONE-VERB read mirror —
+            // the desktop's draft-suggestion feed, rendered read-only (INV-9).
+            com.zcode.android.app.settings.ClientScenesViewerScreen(port = container.clientScenesPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.STYLE) {
+            // G84 (pass-0 Phase 10): the output-style read mirror (list + active
+            // badge; setActiveStyle stays desktop-side — INV-9).
+            com.zcode.android.app.settings.OutputStyleViewerScreen(port = container.outputStylePort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.CUA_STATUS) {
+            // G101 (pass-0 Phase 10): the CUA permission-status mirror fed by
+            // getStatus (restartHelper stays desktop-side — INV-9).
+            com.zcode.android.app.settings.CuaStatusViewerScreen(port = container.cuaStatusPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.SRC_SERVERS) {
+            // G98 (pass-0 Phase 10): the source-server directory mirror (SSH/WSL/
+            // Docker hosts; authoring stays desktop-side — INV-9).
+            com.zcode.android.app.settings.SourceServersViewerScreen(port = container.sourceServersPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.COMMANDS) {
             // G74 (vc52 Phase 12): read-only custom-command viewer (commands.list decode;

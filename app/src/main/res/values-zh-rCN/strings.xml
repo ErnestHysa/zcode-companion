@@ -315,4 +315,32 @@
     <string name="settings_whats_new">更新内容</string>
     <string name="whats_new_dismiss">继续</string>
     <string name="whats_new_empty">暂无更新说明 — 更新后会显示在此处。</string>
+<!-- pass-0 Phase 10: 桌面平价只读镜像（G83/G84/G101/G98） -->
+    <string name="settings_scenes_row">客户端场景</string>
+    <string name="settings_scenes_sub">只读 · 此桌面提供的建议提示</string>
+    <string name="scenes_title">客户端场景</string>
+    <string name="scenes_unavailable">当前连接无法获取客户端场景</string>
+    <string name="scenes_empty">此桌面没有建议提示</string>
+    <string name="settings_style_row">输出风格</string>
+    <string name="settings_style_sub">只读 · 桌面当前输出风格与目录</string>
+    <string name="style_title">输出风格</string>
+    <string name="style_unavailable">当前连接无法获取输出风格</string>
+    <string name="style_empty">此桌面没有输出风格</string>
+    <string name="style_active">当前使用</string>
+    <string name="settings_cua_row">Computer Use 状态</string>
+    <string name="settings_cua_sub">只读 · 桌面 CUA 权限健康状况</string>
+    <string name="cua_title">Computer Use 状态</string>
+    <string name="cua_unavailable">当前连接无法获取 CUA 状态</string>
+    <string name="cua_available">可用</string>
+    <string name="cua_not_available">不可用</string>
+    <string name="cua_idle">空闲</string>
+    <string name="cua_owner">授权所有者</string>
+    <string name="cua_accessibility">辅助功能</string>
+    <string name="cua_screen_recording">屏幕录制</string>
+    <string name="settings_srcsrv_row">源服务器</string>
+    <string name="settings_srcsrv_sub">只读 · 桌面的远程算力主机</string>
+    <string name="srcsrv_title">源服务器</string>
+    <string name="srcsrv_unavailable">当前连接无法获取源服务器</string>
+    <string name="srcsrv_empty">此桌面没有源服务器</string>
+    <string name="srcsrv_workspaces">声明了 %1$d 个工作区</string>
 </resources>

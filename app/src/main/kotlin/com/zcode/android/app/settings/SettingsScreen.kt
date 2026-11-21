@@ -89,6 +89,14 @@ fun SettingsScreen(
     onOpenCommands: () -> Unit = {},
     /** G75 (vc52 Phase 12): opens the read-only workspace-memory viewer. */
     onOpenMemory: () -> Unit = {},
+    /** G83 (pass-0 Phase 10): opens the client-scenes read mirror. */
+    onOpenScenes: () -> Unit = {},
+    /** G84 (pass-0 Phase 10): opens the output-style read mirror. */
+    onOpenStyle: () -> Unit = {},
+    /** G101 (pass-0 Phase 10): opens the CUA permission-status mirror. */
+    onOpenCuaStatus: () -> Unit = {},
+    /** G98 (pass-0 Phase 10): opens the source-server read mirror. */
+    onOpenSourceServers: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -228,6 +236,30 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_memory_sub),
                 tag = "settings_memory",
                 onClick = onOpenMemory,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_scenes_row),
+                subtitle = stringResource(R.string.settings_scenes_sub),
+                tag = "settings_scenes",
+                onClick = onOpenScenes,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_style_row),
+                subtitle = stringResource(R.string.settings_style_sub),
+                tag = "settings_style",
+                onClick = onOpenStyle,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_cua_row),
+                subtitle = stringResource(R.string.settings_cua_sub),
+                tag = "settings_cua",
+                onClick = onOpenCuaStatus,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_srcsrv_row),
+                subtitle = stringResource(R.string.settings_srcsrv_sub),
+                tag = "settings_srcsrv",
+                onClick = onOpenSourceServers,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

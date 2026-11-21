@@ -258,6 +258,12 @@ class AppContainer(context: Context) {
     val hooksPort: DefaultHooksPort = DefaultHooksPort(hub)
     val commandsPort: DefaultCommandsPort = DefaultCommandsPort(hub)
 
+    /** pass-0 Phase 10 (G83/G84/G101/G98): the desktop-parity read mirrors. */
+    val clientScenesPort: DefaultClientScenesPort = DefaultClientScenesPort(hub)
+    val outputStylePort: DefaultOutputStylePort = DefaultOutputStylePort(hub)
+    val cuaStatusPort: DefaultCuaStatusPort = DefaultCuaStatusPort(hub)
+    val sourceServersPort: DefaultSourceServersPort = DefaultSourceServersPort(hub)
+
     /** Phase 4 (GAP-3/4; ADR-020, v4-wire.md §13): the coding-plan quota plane. */
     val quotaPort: DefaultCodingPlanPort = DefaultCodingPlanPort(hub)
 

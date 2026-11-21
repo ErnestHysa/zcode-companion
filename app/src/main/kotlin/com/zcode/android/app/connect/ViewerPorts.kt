@@ -621,6 +621,67 @@ class DefaultCommandsPort(
     }
 }
 
+// ---------------------------------------------------------------- pass-0 Phase 10 parity mirrors (read-only)
+
+/**
+ * G83: the client-scenes ONE-VERB read mirror. App-level (the scenes feed is
+ * the desktop account's cloud data, not workspace-scoped).
+ */
+class DefaultClientScenesPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.ClientScenesPort {
+    override suspend fun scenes(): com.zcode.android.app.settings.ClientScenesPort.Result = try {
+        com.zcode.android.app.settings.ClientScenesPort.Result(hub.viewerTools().clientScenes(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("scenesport.list", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.ClientScenesPort.Result(null, e.message ?: "client scenes are unavailable on this connection")
+    }
+}
+
+/** G84: the output-style read mirror (listStyles + getActiveStyle — no writes). */
+class DefaultOutputStylePort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.OutputStylePort {
+    override suspend fun styles(): com.zcode.android.app.settings.OutputStylePort.Result = try {
+        com.zcode.android.app.settings.OutputStylePort.Result(hub.viewerTools().outputStyles(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("styleport.styles", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.OutputStylePort.Result(null, e.message ?: "output styles are unavailable on this connection")
+    }
+}
+
+/** G101: the CUA permission-status mirror (getStatus — restartHelper stays desktop-only). */
+class DefaultCuaStatusPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.CuaStatusPort {
+    override suspend fun status(): com.zcode.android.app.settings.CuaStatusPort.Result = try {
+        com.zcode.android.app.settings.CuaStatusPort.Result(hub.viewerTools().cuaPermissionStatus(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("cuastatusport.status", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.CuaStatusPort.Result(null, e.message ?: "the CUA status is unavailable on this connection")
+    }
+}
+
+/** G98: the source-server directory mirror (getSnapshot — authoring stays desktop-side). */
+class DefaultSourceServersPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.SourceServersPort {
+    override suspend fun servers(): com.zcode.android.app.settings.SourceServersPort.Result = try {
+        com.zcode.android.app.settings.SourceServersPort.Result(hub.viewerTools().sourceServers(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("srcsrvport.snapshot", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.SourceServersPort.Result(null, e.message ?: "source servers are unavailable on this connection")
+    }
+}
+
 /**
  * G75 (vc52 Phase 12): the workspace-memory reader over the `file` channel (readdir
  * + readTextFile, raw paths — the only transport the desktop offers for the memory
