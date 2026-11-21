@@ -88,6 +88,22 @@ class Pass0Phase3WorkspaceRenameTest {
     /** The DataStore file truth, read without touching the live DataStore instance. */
     private fun filePrefs(): AppPreferencesProto = AppPreferencesProto.parseFrom(file.readBytes())
 
+    /**
+     * The absent-file-tolerant read. DataStore creates the file lazily on the first
+     * write, and on a loaded runner the repo's in-memory publish can be observed a
+     * beat before the file is readable — the 2026-11-21 final audit caught the
+     * disposal leg failing exactly this way (repo waitUntil green, file read
+     * FileNotFoundException). Never assert file truth directly off a repo-truth
+     * wait: wait on the FILE itself ([awaitFileTruth]).
+     */
+    private fun filePrefsOrNull(): AppPreferencesProto? =
+        runCatching { if (file.exists()) AppPreferencesProto.parseFrom(file.readBytes()) else null }.getOrNull()
+
+    /** Bounded wait until the FILE carries the expected truth (not the repo view). */
+    private fun awaitFileTruth(timeoutMs: Long = 10_000, expected: (AppPreferencesProto) -> Boolean) {
+        rule.waitUntil(timeoutMillis = timeoutMs) { filePrefsOrNull()?.let(expected) == true }
+    }
+
     @Before
     fun setUp() {
         dir = File(ApplicationProvider.getApplicationContext<Context>().cacheDir, "p40b-${System.nanoTime()}")
@@ -196,6 +212,7 @@ class Pass0Phase3WorkspaceRenameTest {
         rule.waitUntil(timeoutMillis = 10_000) {
             runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
         }
+        awaitFileTruth { it.workspaceAliasesMap["/synthetic/ws-one"] == "RigAlias" }
         assertEquals("RigAlias", filePrefs().workspaceAliasesMap["/synthetic/ws-one"])
         // The recomposition echo: the chip renders the alias over the wire label.
         rule.onNodeWithTag("tasks_ws_${"/synthetic/ws-one".hashCode()}").assertTextContains("RigAlias")
@@ -216,6 +233,9 @@ class Pass0Phase3WorkspaceRenameTest {
         rule.waitUntil(timeoutMillis = 10_000) {
             runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
         }
+        // The FILE truth (the audit's live catch: repo-truth can publish a beat
+        // before the file on a loaded runner — wait on the file itself).
+        awaitFileTruth { it.workspaceAliasesMap["/synthetic/ws-one"] == "RigAlias" }
         assertTrue(
             "field 17 must carry the alias after the disposal",
             filePrefs().workspaceAliasesMap["/synthetic/ws-one"] == "RigAlias",
@@ -240,6 +260,7 @@ class Pass0Phase3WorkspaceRenameTest {
         rule.waitUntil(timeoutMillis = 10_000) {
             runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == null }
         }
+        awaitFileTruth { it.workspaceAliasesMap["/synthetic/ws-one"] == null }
         assertTrue(
             "field 17 must not carry the cleared alias",
             filePrefs().workspaceAliasesMap["/synthetic/ws-one"] == null,
@@ -257,6 +278,7 @@ class Pass0Phase3WorkspaceRenameTest {
         }
         // A cold process reads the serialized bytes: the alias is there (the
         // Accept's "survives an app restart" — the file IS the restart arbiter).
+        awaitFileTruth { it.workspaceAliasesMap["/synthetic/ws-one"] == "RigAlias" }
         assertEquals("RigAlias", filePrefs().workspaceAliasesMap["/synthetic/ws-one"])
     }
 
