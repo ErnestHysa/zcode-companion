@@ -1600,6 +1600,13 @@ class RelayTransport(
     override suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject =
         plane.mcpServerStatuses(workspacePath, workspaceIdentity)
 
+    // ---- pass-0 Phase 10 parity mirrors (G83/G84/G101/G98; INV-9 read-only)
+    override suspend fun clientScenesList(): JsonObject = plane.clientScenesList()
+    override suspend fun outputStyleList(): JsonObject = plane.outputStyleList()
+    override suspend fun outputStyleActive(): JsonObject = plane.outputStyleActive()
+    override suspend fun cuaPermissionStatus(): JsonObject = plane.cuaPermissionStatus()
+    override suspend fun sourceServerSnapshot(): JsonObject = plane.sourceServerSnapshot()
+
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
     override suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? =
         plane.taskSnapshotToolCallsSlice(taskId, toolCallIds)

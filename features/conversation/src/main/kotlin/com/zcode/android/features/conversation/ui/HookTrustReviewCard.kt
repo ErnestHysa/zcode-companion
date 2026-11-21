@@ -107,6 +107,22 @@ fun HookTrustReviewCard(
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
                 )
             }
+            // G89 (pass-0 Phase 10): the typed review-reason face — the flow-level
+            // reason the phone can OBSERVE (the expired deadline = the desktop's
+            // interaction_timeout copy); every unobservable state stays silent
+            // (never an invented reason — HookReviewReasons).
+            val flowReason = androidx.compose.runtime.remember(hook) {
+                com.zcode.android.domain.model.HookReviewReasons.flowReason(hook, System.currentTimeMillis())
+            }
+            flowReason?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("hook_review_flow_reason"),
+                )
+            }
             Spacer(Modifier.height(8.dp))
             // N-BG-1/D4 (vc52 Phase 9): the item list scrolls in ITS OWN viewport (the
             // caller caps the card inside the pinned budget) and "Trust N selected" is
@@ -189,6 +205,19 @@ fun HookTrustReviewCard(
                                     modifier = Modifier.testTag("hook_review_stale_${item.reviewItemId}"),
                                 )
                             }
+                        }
+                        // G89 (pass-0 Phase 10): the item's TYPED reason under the
+                        // bare chip — the desktop's bundle_changed family copy (the
+                        // config changed since trust; confirm again).
+                        com.zcode.android.domain.model.HookReviewReasons.itemReason(item)?.let { reason ->
+                            Text(
+                                text = reason,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .testTag("hook_review_reason_${item.reviewItemId}"),
+                            )
                         }
                         if (item.displayCommand.isNotBlank()) {
                             Text(

@@ -12,6 +12,10 @@ import com.zcode.android.domain.model.ResetUseResult
 import com.zcode.android.domain.model.UsageEntitlement
 import com.zcode.android.domain.model.PluginsView
 import com.zcode.android.domain.model.SkillCatalog
+import com.zcode.android.domain.model.ClientScenesView
+import com.zcode.android.domain.model.CuaPermissionStatus
+import com.zcode.android.domain.model.OutputStylesView
+import com.zcode.android.domain.model.SourceServersView
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -152,6 +156,39 @@ class ViewerTools(private val transport: AppTransport) {
     /** `listMcpServerStatuses` with `mode: "status"` (passive; v4-wire.md §12.5). */
     suspend fun mcpStatuses(workspacePath: String?, workspaceIdentity: String?): McpStatuses =
         McpStatuses.decode(transport.mcpServerStatuses(workspacePath, workspaceIdentity))
+
+    // ---------------------------------------------------------------- pass-0 Phase 10: parity mirrors (G83/G84/G101/G98)
+
+    /**
+     * G83: `client-scenes.list` — the desktop's ONE client-scenes verb; the
+     * phone consumes the draft-suggestion scene's prompts (the mirror renders
+     * them read-only; the plane has no write anywhere).
+     */
+    suspend fun clientScenes(): ClientScenesView = ClientScenesView.decode(transport.clientScenesList())
+
+    /**
+     * G84: `output-style.listStyles` + `getActiveStyle` — the read half of the
+     * desktop's outputStyleService; the styles catalog + the active id.
+     */
+    suspend fun outputStyles(): OutputStylesView {
+        val active = try {
+            (transport.outputStyleActive()["styleId"] as? kotlinx.serialization.json.JsonPrimitive)
+                ?.content?.takeIf { it.isNotBlank() && it != "null" }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null // the active read degrading keeps the list render (the badge drops)
+        }
+        return OutputStylesView.decode(transport.outputStyleList(), active)
+    }
+
+    /** G101: `cua-permission.getStatus` — the desktop's typed CUA health (read-only). */
+    suspend fun cuaPermissionStatus(): CuaPermissionStatus =
+        CuaPermissionStatus.decode(transport.cuaPermissionStatus())
+
+    /** G98: `source-server-management.getSnapshot` — the directory snapshot (read-only). */
+    suspend fun sourceServers(): SourceServersView =
+        SourceServersView.decode(transport.sourceServerSnapshot())
 
     // ---------------------------------------------------------------- GAP-3: coding-plan quota (ADR-020)
 

@@ -345,6 +345,29 @@ interface V4Plane {
      */
     suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject
 
+    // ---- pass-0 Phase 10: the desktop-parity read mirrors (G83/G84/G101/G98)
+    // Service-channel reads on the asar `ec475e6e…` channel registry
+    // (ChannelNames.ClientScenes="client-scenes", OutputStyle="output-style",
+    // CuaPermission="cua-permission", SourceServerManagement=
+    // "source-server-management"). READ-ONLY: the authoring half of these
+    // planes (output-style set/delete, CUA restartHelper, source-server
+    // connect/rename/remove) exists nowhere on the typed surface (INV-9).
+
+    /** G83: `client-scenes.list` — the desktop's ONE client-scenes verb. */
+    suspend fun clientScenesList(): JsonObject
+
+    /** G84: `output-style.listStyles` — the styles catalog (built-ins + customs). */
+    suspend fun outputStyleList(): JsonObject
+
+    /** G84: `output-style.getActiveStyle` — `{styleId: string|null}`. */
+    suspend fun outputStyleActive(): JsonObject
+
+    /** G101: `cua-permission.getStatus` — the desktop's typed CUA health. */
+    suspend fun cuaPermissionStatus(): JsonObject
+
+    /** G98: `source-server-management.getSnapshot` — the source-server directory. */
+    suspend fun sourceServerSnapshot(): JsonObject
+
     // ---- Phase 4 coding-plan quota plane (ADR-020; v4-wire.md §13)
 
     /**
@@ -1570,6 +1593,33 @@ internal class ChannelV4Plane(
         }
         return v4CallObject("listMcpServerStatuses", params)
     }
+
+    // ---- pass-0 Phase 10 parity mirrors: shared no-arg service-channel read
+    // (the desktop's ProxyChannel convention — promise args ARRAY-wrapped, §7;
+    // same as offPeakTaskList's empty-arg shape).
+    private suspend fun mirrorChannelObject(channelName: String, method: String): JsonObject =
+        when (
+            val raw = channelCall(channelName, method, RpcValue.Arr(emptyList()), timeouts.controlRequestTimeoutMs)
+        ) {
+            is RpcValue.Obj -> (raw.json as? JsonObject)
+                ?: throw TransportFailure(ErrorMapping.protocolFault("$channelName.$method result not an object"))
+            else -> throw TransportFailure(ErrorMapping.protocolFault("$channelName.$method result not an object"))
+        }
+
+    /** G83: `client-scenes.list` — the desktop's ONE client-scenes verb (asar QF). */
+    suspend fun clientScenesList(): JsonObject = mirrorChannelObject("client-scenes", "list")
+
+    /** G84: `output-style.listStyles` (asar createOutputStyleService). */
+    suspend fun outputStyleList(): JsonObject = mirrorChannelObject("output-style", "listStyles")
+
+    /** G84: `output-style.getActiveStyle` — `{styleId: string|null}`. */
+    suspend fun outputStyleActive(): JsonObject = mirrorChannelObject("output-style", "getActiveStyle")
+
+    /** G101: `cua-permission.getStatus` — the desktop's typed CUA health (asar gm). */
+    suspend fun cuaPermissionStatus(): JsonObject = mirrorChannelObject("cua-permission", "getStatus")
+
+    /** G98: `source-server-management.getSnapshot` — the directory snapshot (asar eS). */
+    suspend fun sourceServerSnapshot(): JsonObject = mirrorChannelObject("source-server-management", "getSnapshot")
 
     // ---- Phase 4 coding-plan quota plane (ADR-020; v4-wire.md §13)
     // The `usage-stats` ProxyChannel (promise args ARRAY-wrapped, §7). The
