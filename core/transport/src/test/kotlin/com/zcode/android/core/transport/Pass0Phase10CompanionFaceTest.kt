@@ -1,5 +1,8 @@
 package com.zcode.android.core.transport
 
+import com.zcode.android.core.common.error.AppError
+import com.zcode.android.core.common.error.ErrorCategory
+import com.zcode.android.core.common.error.RecoveryAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -22,12 +25,12 @@ class Pass0Phase10CompanionFaceTest {
         val err = ErrorMapping.relayError("KICKED", "kicked by takeover")
         assertEquals(ErrorCategory.SESSION, err.category)
         assertTrue(
-            "the face names the takeover source (browser companion / another page): ${err.userMessage}",
             err.userMessage.contains("Remote page") || err.userMessage.contains("remote page"),
+            "the face names the takeover source (browser companion / another page): " + err.userMessage,
         )
         assertTrue(
-            "the face carries the close-the-other-page remedy: ${err.userMessage}",
             err.userMessage.contains("close", ignoreCase = true),
+            "the face carries the close-the-other-page remedy: " + err.userMessage,
         )
     }
 
