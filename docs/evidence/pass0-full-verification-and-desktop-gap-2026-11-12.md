@@ -2887,7 +2887,7 @@ will ladder per the healthy path or wedge per F-P9-A). Nothing pushed.
   the reads do (session-scoped), and render a typed refusal face when the target is
   null; pin: a Robolectric commit-sheet harness with a hub whose activeWorkspaceTarget
   is null asserting the face. This is the F-P5-A silent family's write-half twin.
-- [x] **N-BN-1 (P4, a11y) — the Plugins screen's per-plugin enable switches are
+- [ ] **N-BN-1 (P4, a11y) — the Plugins screen's per-plugin enable switches are
   UNLABELED**: `plugin_switch_plugin-prisma` and `plugin_switch_plugin-review`
   (checkable Views at the row trailing edge) carry no content-desc and no text children
   — TalkBack announces nothing for the ONLY interactive element of each plugin row.
@@ -12260,7 +12260,7 @@ phase: **10A mirrors → 10B decisions → 10C heavy planes.**
   restricted to a 49-channel allowedChannels Set). **Fix:** honest surfaces minimum (a
   companion-state mirror + a kicked/conflict face); the plane itself stays desktop-served.
   **Accept:** the companion-state mirror + the conflict face render against the real desktop.
-- [ ] **N-BN-1 (P4) — the Plugins screen's per-plugin enable switches are UNLABELED**
+- [x] **N-BN-1 (P4) — the Plugins screen's per-plugin enable switches are UNLABELED**
   (`plugin_switch_plugin-prisma`/`-review` carry no content-desc and no text children —
   TalkBack silence on the row's only interactive element). **Fix:** content-desc on the
   switches (rides G103's catalog-plane work). **Accept:** an a11y pin — each switch labeled.
@@ -12280,16 +12280,31 @@ note); the catalog detail-sheet pin green; the a11y pin green.
       pure-JVM modules) green at the final HEAD with the zero-new-names gate against the
       recorded per-phase baselines, and every module emitted test XML (no test-compile blind
       spot)
-- [ ] Fresh debug APK rebuilt (the deliverable-completion rule); artifact path + version
-      marker stated to Ernest
-- [ ] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed only on Ernest's
-      explicit word
-- [ ] Desktop-of-record STEP 0 re-run before the final phase (the ledger's DELTA procedure if
+- [x] Fresh debug APK rebuilt (the deliverable-completion rule); artifact path + version
+      marker stated to Ernest — ✓ 2026-11-21 final-audit rebuild at `b9f7d3ef`:
+      `app/build/outputs/apk/debug/app-debug.apk` sha256 `000ecfb9e69149c9fe5cf43aa086dee6e
+      0ec0615b146aafce44d0453698764a2` (32,060,835 bytes — BYTE-IDENTICAL to the Phase-10
+      APK of record: the post-phase commits are docs/test-only, nothing enters the APK),
+      versionCode 53 / versionName 1.3.2
+- [x] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed only on Ernest's
+      explicit word — ✓ 2026-11-21: all 130 commits `80451814..b9f7d3ef` author-verified
+      `ErnestHysa <takis312@hotmail.com>` (zero wrong-identity); NOTHING pushed
+- [x] Desktop-of-record STEP 0 re-run before the final phase (the ledger's DELTA procedure if
       the asar changed); any new desktop planes re-grepped and appended to the ledger BEFORE
-      phasing them
-- [ ] The ledger rows re-statused FIXED with their commit shas; the discovery record above
-      untouched; reusable learnings appended to AGENTS.md
-- [ ] This roadmap left append-only (row ticks + dated fix-round receipts only)
+      phasing them — ✓ re-verified 2026-11-21: `/Applications/ZCode.app` asar sha256
+      `ec475e6e302595fe…` UNCHANGED (3.18.1; the Phase-10 record's §10.2 re-census stands;
+      no DELTA)
+- [x] The ledger rows re-statused FIXED with their commit shas; the discovery record above
+      untouched; reusable learnings appended to AGENTS.md — ✓ 2026-11-21: all 86 ledger rows
+      carry FIXED(+shas)/DECIDED(2026-11-21)/CLOSED-AMBIENT, zero OPEN; the discovery record
+      is byte-identical to the roadmap-append tip `80451814` (the one stray tick at its
+      N-BN-1 listing, introduced by `ba7b8268`, restored to the append-time state this
+      audit); AGENTS.md carries the campaign canon (the §pass0 workflow + the dated rig
+      entries); per-phase learnings in the fix-round records + the memory files
+- [x] This roadmap left append-only (row ticks + dated fix-round receipts only) — ✓ verified
+      2026-11-21 by diffing lines 1–11396 against `80451814`: the ONLY divergence ever was
+      the stray line-2890 tick (restored); every phase record was a dated append at the file
+      end; row ticks + the overview marks are the roadmap's sanctioned edits
 
 ---
 
@@ -13934,3 +13949,127 @@ the stored MockBook endpoint). Receipts: /tmp/pass10/rig/ (20 screenshots incl. 
 mirror screens, the skill detail sheet, the plugin switch a11y dump, the hook typed faces,
 the config options section, the gen-ui face, the companion line, the reset ladder
 before/after; relay-gen1/gen2 logs; logcat.log).
+
+---
+
+# pass-0 FINAL CAMPAIGN AUDIT (APPENDED 2026-11-21 — the independent whole-roadmap verification Ernest ordered; nothing above edited except the sanctioned row ticks)
+
+> **Dispositions: ALL 10 PHASES VERIFIED 100% COMPLETE — the pass-0 remediation roadmap is
+> DONE, 86/86 rows, DoD 8/8.** This audit did NOT trust the checkboxes or the commit
+> messages: every claim was re-verified against the ACTUAL repo state at HEAD `b9f7d3ef`
+> (branch `fix/pass0`), read from the landed bodies, the test sources, the gradle evidence
+> and the filesystem — first-hand, this session.
+
+## A.1 — what was verified, first-hand (2026-11-21)
+
+- **Commit ancestry.** Every one of the **187 distinct commit shas** cited across the
+  roadmap and the ten fix-round records: `git cat-file -t` = commit AND
+  `git merge-base --is-ancestor <sha> HEAD` — **187/187 TRUE, zero missing, zero
+  non-ancestors**. The remaining hex tokens in the file are APK hashes/digests/timestamps
+  (non-commits), as expected.
+- **The pins.** All **76/76 named pin test classes** exist as real files (the two
+  apparent misses, `Pass0Phase3CreateGroupAndMoveVmTest` + `Pass0Phase3SearchPageVmTest`,
+  are same-file classes in their companion pin files — located and counted). **264+
+  backtick test functions** across the 76 files (plus the non-backtick suites, e.g.
+  TaskListUiTest's 14 @Tests) — substantive, not stubs.
+- **The landed bodies.** Mechanism-symbol verification across all ten phases (every row's
+  named fix symbol grepped in production code), PLUS verbatim spot-reads of the critical
+  mechanisms: F-P8-A's `persistEndpoint` resolved-selection guard (ConnectionHub.kt:1741 —
+  the active pointer moves only when nothing resolved / it IS this endpoint / active isn't
+  DIRECT), F-P13-A's `resubscribeRecordless()` on CONNECTED + the `RecordlessDelta`
+  re-anchor (RecoveryCoordinator.kt:265/:512/:541), F-P45-A's confirmed
+  `Triple(f, t, conflicts)` force carry (GitScreen.kt:945/:1087), N-BQ-1's
+  `isRevisionMismatch` (-32009 code + verbatim message fallback, V4Plane.kt:53-60),
+  N-BX-1's JsonNull-blind `strOrNull` filter (Phase9Tools.kt:473), N-BY-1's `%1$s`
+  positional replaces (GitScreen.kt:832/:843), N-BN-1's `plugin_enable_switch_a11y`
+  resolved with the plugin name (PluginsViewerScreen.kt:249), F-P33-A's `downloads/` +
+  `attachments/` cache roots (file_paths.xml:14-15). All verbatim.
+- **The ledger.** All **86 roadmap rows** carry a terminal status: 75 FIXED (each with the
+  commit shas that match the fix-round records exactly), 9 DECIDED (all dated 2026-11-21:
+  G85/G95/G96/G86/G87/G88/G99/G94/G93 — G93's architecture decision recorded BEFORE any
+  build), 1 CLOSED-AMBIENT (F-P0-E, the census note), plus the SATISFIED adjudication trio
+  (G91/G82/G100). **Zero OPEN rows.** The excluded sweep's dispositions match the roadmap's
+  exclusion list row for row (FIXED/RETRACTED/REFUTED/ABSORBED/RE-VERIFIED-WORKING/WATCH/
+  RIG/STANDS/STANDING).
+- **Identity.** All **130 commits** `80451814..b9f7d3ef` authored
+  `ErnestHysa <takis312@hotmail.com>` — zero wrong-identity. **NOTHING pushed** (verified:
+  no push, no remote updates, local commits only).
+- **STEP 0.** `/Applications/ZCode.app` asar sha256 `ec475e6e302595fe…` — the desktop of
+  record **UNCHANGED** (3.18.1; no DELTA procedure owed).
+- **Append-only integrity.** Lines 1–11396 (the discovery record) diffed byte-for-byte
+  against the roadmap-append tip `80451814`: the ONLY divergence ever was ONE stray
+  character — `ba7b8268` (the Phase-10 docs commit) ticked the DISCOVERY RECORD's N-BN-1
+  listing (line 2890) instead of the roadmap row (line 12263). **This audit restored the
+  discovery record to its append-time state (line 2890 `- [ ]`) and ticked the ROADMAP's
+  N-BN-1 row instead** — the roadmap is now 86/86 ticked and the discovery record is clean.
+
+## A.2 — the forced full-suite gate (rule 7, fresh, at `b9f7d3ef`)
+
+`./gradlew` `testDebugUnitTest` (11 Android modules: app, data, core:ui, core:notifications,
+core:security, features:pairing/tasks/conversation/terminal/git/files) + `test` (6 pure-JVM
+modules: domain, core:common, core:protocol, core:transport, spike, tools:mockzcode) with
+`--continue --rerun-tasks`: **368 tasks EXECUTED (nothing served from cache), 2744 testcases,
+7 failures, 0 errors.** Blind-spot checks: **all 17 modules emitted test XML** (app 116 /
+data 64 / conversation 144 / tasks 42 / mockzcode 57 / domain 46 / transport 37 / core-ui 28
+/ notifications 11 / pairing 11 / git 13 / files 7 / terminal 8 / protocol 8 / common 5 /
+security 5 / spike 3); the task-failure list holds ONLY test-failure tasks (no compile
+failures — `:app`, `:data`, `:features:conversation` test tasks only).
+
+**Name-diff adjudication — ZERO new failing names attributable to the roadmap:**
+
+| Failing name | Module | Verdict (first-hand this audit) |
+| --- | --- | --- |
+| `ConnectionHubWritePathTest > sendText… (U4, §17-5)` | app | the documented pre-existing baseline anchor (recorded since the Phase-1 gate, deterministic at the pre-phase commits per the phase A/Bs); fails in ISOLATION at HEAD (1 failure, same name) — stable, honest, out of campaign scope |
+| `RowActionsRoutingTest > stale retry preserves the honest session-moved notice` | conversation | documented pre-existing baseline (the Phase-8/9/10 records' drift cluster, pre-phase A/B receipts); fails in ISOLATION at HEAD (1/10) — stable |
+| `TimelineCallbackWiringTest > F27-B thumbnail tap` | conversation | documented pre-existing baseline (same cluster); fails in ISOLATION at HEAD (1/4) — stable |
+| `RecoveryScenarioMatrixTest` S2/S7/S9/S12 | data | the documented `:data` pool-load flake class (the shared `awaitUntil` timeout assert; Phase-3/-9 precedents): **18/18 GREEN in isolation at HEAD, exit 0** — exonerated |
+
+The Phase-9-recorded second app baseline name (the queue-edits CAS leg) and
+ConnectionHubIntegrationTest passed this run.
+
+## A.3 — the audit's one live catch (fixed in this audit)
+
+`Pass0Phase3WorkspaceRenameTest > the alias survives the composition's death while the write
+is in flight` failed ONCE in this audit's first (cached) suite pass with
+`FileNotFoundException` at its own `filePrefs()` read — **a harness race, not a production
+regression**: the pin's repo-truth `waitUntil` went green a beat BEFORE the DataStore file
+was readable on a loaded runner, then asserted file truth immediately. Proof it is not a
+regression: the SAME leg passed green in the same day's forced full-suite rerun (368 tasks).
+**Fix (`b9f7d3ef`, test-only):** `filePrefsOrNull()` (absent-file tolerant) +
+`awaitFileTruth()` (bounded wait on the FILE itself, not the repo view) applied at the four
+bare file-read asserts; the pin class re-run **5/5 green** at the audit HEAD. This also
+serves the "add tests / cover the possibilities" dispatch: every roadmap row already carries
+its named pin (76/76, verified green in the gate) or a dated decision/observation — the
+phase records' honesty lists (the 10-minute idle-arm rig debt, the kicked-face second-client
+leg, the five non-Skills detail-sheet live taps, the zh-rCN device walk) are DOCUMENTED
+future-rig debts, not missing pins; nothing else to add.
+
+## A.4 — the deliverable
+
+Fresh `./gradlew :app:assembleDebug` at the audit HEAD `b9f7d3ef`: **`app/build/outputs/apk/
+debug/app-debug.apk` — sha256 `000ecfb9e69149c9fe5cf43aa086dee6e0ec0615b146aafce44d0453698
+764a2`, md5 `ab9c56ad102d03f56f01e659076fdbf7`, 32,060,835 bytes — BYTE-IDENTICAL to the
+Phase-10 APK of record** (the post-phase commits are docs/test-only; nothing enters the APK),
+versionCode **53** / versionName **1.3.2**. Path + version marker stated to Ernest:
+install `app/build/outputs/apk/debug/app-debug.apk` (v1.3.2, vc53).
+
+## A.5 — final disposition
+
+**The pass-0 remediation roadmap: VERIFIED COMPLETE.** All ten phase exit gates were passed
+live in their own rounds (receipts in the ten fix-round records above; each verified by
+GLM-5.3-Flash per its stamp); this audit re-verified the landed bodies, the pins, the
+commits, the ledger, the identity, the append-only discipline and the fresh full suite —
+first-hand — and found the roadmap's 86/86 rows genuinely DONE (the only discrepancies
+found: the stray line-2890 tick — restored — and the pin harness race — hardened). The
+candidates awaiting Ernest remain: push/merge `fix/pass0` → main, cut a release from the
+`000ecfb9…` APK, or a fresh discovery pass (justified only by a new plane per the standing
+rule).
+
+**2026-11-21, verified at 11:24:07 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's final
+whole-campaign dispatch ("verify all phases from 1 to 10 are 100% fullfilled and finished…
+verify all the work done against the actual state of the repo now… check it yourself and
+dont trust just the chekmarks or commit messages. check the actual landed body"). Roadmap
+disposition: **10/10 phases COMPLETE, 86/86 rows, DoD 8/8 — THE CAMPAIGN IS DONE.** NOTHING
+pushed — local commits only.
