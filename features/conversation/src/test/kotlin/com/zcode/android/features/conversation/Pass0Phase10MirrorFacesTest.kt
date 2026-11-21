@@ -57,7 +57,9 @@ class Pass0Phase10MirrorFacesTest {
     private fun hook(
         vararg items: WorkspaceHookReview.Item,
         deadlineInMs: Long = 600_000,
-        nowBaseMs: Long = 1_700_000_000_000,
+        // Relative to the REAL clock — the flow reason derives from the wall clock
+        // (a fixed past base would read as expired on every future machine).
+        nowBaseMs: Long = System.currentTimeMillis(),
     ) = WorkspaceHookReview(
         reviewFlowId = "flow-1",
         generation = 1,
